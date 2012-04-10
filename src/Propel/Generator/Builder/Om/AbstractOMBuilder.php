@@ -13,6 +13,7 @@ namespace Propel\Generator\Builder\Om;
 use Propel\Generator\Builder\DataModelBuilder;
 use Propel\Generator\Exception\EngineException;
 use Propel\Generator\Exception\LogicException;
+use Propel\Generator\Exception\InvalidArgumentException;
 use Propel\Generator\Model\ForeignKey;
 use Propel\Generator\Model\Table;
 
@@ -501,9 +502,7 @@ abstract class AbstractOMBuilder extends DataModelBuilder
     public function getColumnConstant($col, $classname = null)
     {
         if ($col === null) {
-            $e = new Exception("No col specified.");
-            print $e;
-            throw $e;
+            throw new InvalidArgumentException('No column specified.');
         }
         if ($classname === null) {
             return $this->getBuildProperty('classPrefix') . $col->getConstantName();
@@ -607,7 +606,7 @@ abstract class AbstractOMBuilder extends DataModelBuilder
             $localTable  = $fk->getTable();
             $localColumn = $localTable->getColumn($localColumnName);
             if (!$localColumn) {
-                throw new Exception(sprintf('Could not fetch column: %s in table %s.', $localColumnName, $localTable->getName()));
+                throw new EngineException(sprintf('Could not fetch column: %s in table %s.', $localColumnName, $localTable->getName()));
             }
 
             if (count($localTable->getForeignKeysReferencingTable($fk->getForeignTableName())) > 1
@@ -657,7 +656,7 @@ abstract class AbstractOMBuilder extends DataModelBuilder
             $localTable = $fk->getTable();
             $localColumn = $localTable->getColumn($localColumnName);
             if (!$localColumn) {
-                throw new Exception(sprintf('Could not fetch column: %s in table %s.', $localColumnName, $localTable->getName()));
+                throw new EngineException(sprintf('Could not fetch column: %s in table %s.', $localColumnName, $localTable->getName()));
             }
             $foreignKeysToForeignTable = $localTable->getForeignKeysReferencingTable($fk->getForeignTableName());
             if ($fk->getForeignTableName() == $fk->getTableName()) {

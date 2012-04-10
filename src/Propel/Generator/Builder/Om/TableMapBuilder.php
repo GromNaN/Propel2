@@ -10,6 +10,7 @@
 
 namespace Propel\Generator\Builder\Om;
 
+use Propel\Generator\Model\Column;
 use Propel\Generator\Model\IdMethod;
 use Propel\Generator\Model\Validator;
 use Propel\Generator\Platform\PlatformInterface;
@@ -63,7 +64,6 @@ class TableMapBuilder extends AbstractOMBuilder
 
 /**
  * This class defines the structure of the '".$table->getName()."' table.
- *
  *";
         if ($this->getBuildProperty('addTimeStamp')) {
             $now = strftime('%c');
@@ -74,12 +74,6 @@ class TableMapBuilder extends AbstractOMBuilder
  *";
         }
         $script .= "
- *
- * This map class is used by Propel to do runtime db structure discovery.
- * For example, the createSelectSql() method checks the type of a given column used in an
- * ORDER BY clause to know whether it needs to apply SQL to make the ORDER BY case-insensitive
- * (i.e. if it's a text column type).
- *
  */
 class ".$this->getUnqualifiedClassName()." extends TableMap
 {
@@ -93,15 +87,37 @@ class ".$this->getUnqualifiedClassName()." extends TableMap
      */
     protected function addClassBody(&$script)
     {
+        $table = $this->getTable();
+
         $this->declareClasses(
             '\Propel\Runtime\Map\TableMap',
             '\Propel\Runtime\Map\RelationMap'
         );
+
         $this->addConstants($script);
+
+        if (!$table->isAlias()) {
+            $this->addConstantsAndAttributes($script);
+        }
+
+        $this->addInstanceAttribute($script);
         $this->addAttributes($script);
+
+        $this->addInstanceGetter($script);
+
+        $this->addTranslateFieldName($script);
+        $this->addGetFieldNames($script);
+
+        if ($table->hasEnumColumns()) {
+            $this->addGetValueSets($script);
+            $this->addGetValueSet($script);
+        }
+
         $this->addInitialize($script);
         $this->addBuildRelations($script);
         $this->addGetBehaviors($script);
+
+        $this->addBuildTableMap($script);
     }
 
     /**
@@ -135,7 +151,7 @@ class ".$this->getUnqualifiedClassName()." extends TableMap
         $script .= "
 } // " . $this->getUnqualifiedClassName() . "
 ";
-        $this->applyBehaviorModifier('tableMapFilter', $script, "");
+        $this->addStaticTableMapRegistration($script);
     }
 
     /**
@@ -144,9 +160,10 @@ class ".$this->getUnqualifiedClassName()." extends TableMap
      */
     protected function addInitialize(&$script)
     {
-
         $table = $this->getTable();
         $platform = $this->getPlatform();
+
+        $this->declareClass('\Propel\Runtime\Exception\PropelException');
 
         $script .= "
     /**
@@ -361,5 +378,442 @@ class ".$this->getUnqualifiedClassName()." extends TableMap
     public function applyBehaviorModifier($hookName, &$script, $tab = "        ")
     {
         return $this->applyBehaviorModifierBase($hookName, 'TableMapBuilderModifier', $script, $tab);
+    }
+
+    /**
+     * Adds constant and variable declarations that go at the top of the class.
+     * @param      string &$script The script will be modified in this method.
+     * @see        addColumnNameConstants()
+     */
+    protected function addConstantsAndAttributes(&$script)
+    {
+        $dbName = $this->getDatabase()->getName();
+        $tableName = $this->getTable()->getName();
+        $tablePhpName = $this->getTable()->isAbstract() ? '' : addslashes($this->getStubObjectBuilder()->getFullyQualifiedClassname());
+        $script .= "
+    /** the default database name for this class */
+    const DATABASE_NAME = '$dbName';
+
+    /** the table name for this class */
+    const TABLE_NAME = '$tableName';
+
+    /** the related Propel class for this table */
+    const OM_CLASS = '$tablePhpName';
+
+    /** A class that can be returned by this peer. */
+    const CLASS_DEFAULT = '".$this->getStubObjectBuilder()->getClasspath()."';
+
+    /** The total number of columns. */
+    const NUM_COLUMNS = ".$this->getTable()->getNumColumns().";
+
+    /** The number of lazy-loaded columns. */
+    const NUM_LAZY_LOAD_COLUMNS = ".$this->getTable()->getNumLazyLoadColumns().";
+
+    /** The number of columns to hydrate (NUM_COLUMNS - NUM_LAZY_LOAD_COLUMNS) */
+    const NUM_HYDRATE_COLUMNS = ". ($this->getTable()->getNumColumns() - $this->getTable()->getNumLazyLoadColumns()) .";
+";
+        $this->addColumnNameConstants($script);
+        $this->addInheritanceColumnConstants($script);
+        if ($this->getTable()->hasEnumColumns()) {
+            $this->addEnumColumnConstants($script);
+        }
+
+        $script .= "
+    /** The default string format for model objects of the related table **/
+    const DEFAULT_STRING_FORMAT = '" . $this->getTable()->getDefaultStringFormat() . "';
+
+    /**
+     * An identiy map to hold any loaded instances of ".$this->getObjectClassname()." objects.
+     * This must be public so that other peer classes can access this when hydrating from JOIN
+     * queries.
+     * @var        array ".$this->getObjectClassname()."[]
+     */
+    static public \$instances = array();
+
+";
+
+        // apply behaviors
+        $this->applyBehaviorModifier('staticConstants', $script, "    ");
+        $this->applyBehaviorModifier('staticAttributes', $script, "    ");
+
+        $this->addFieldNamesAttribute($script);
+        $this->addFieldKeysAttribute($script);
+
+        if ($this->getTable()->hasEnumColumns()) {
+            $this->addEnumColumnAttributes($script);
+        }
+    }
+
+    /**
+     * Adds the COLUMN_NAME contants to the class definition.
+     * @param      string &$script The script will be modified in this method.
+     */
+    protected function addColumnNameConstants(&$script)
+    {
+        foreach ($this->getTable()->getColumns() as $col) {
+            $script .= "
+    /** the column name for the " . strtoupper($col->getName()) ." field */
+    const ".$this->getColumnName($col) ." = '" . $this->getTable()->getName() . ".".strtoupper($col->getName())."';
+";
+        } // foreach
+    }
+
+    /**
+     * Adds the valueSet constants for ENUM columns.
+     * @param      string &$script The script will be modified in this method.
+     */
+    protected function addEnumColumnConstants(&$script)
+    {
+        foreach ($this->getTable()->getColumns() as $col) {
+            if ($col->isEnumType()) {
+                $script .= "
+    /** The enumerated values for the " . strtoupper($col->getName()) . " field */";
+                foreach ($col->getValueSet() as $value) {
+                    $script .= "
+    const " . $this->getColumnName($col) . '_' . $this->getEnumValueConstant($value) . " = '" . $value . "';";
+                }
+                $script .= "
+";
+            }
+        }
+    }
+
+    protected function getEnumValueConstant($value)
+    {
+        return strtoupper(preg_replace('/[^a-zA-Z0-9_\x7f-\xff]/', '_', $value));
+    }
+
+    protected function addFieldNamesAttribute(&$script)
+    {
+        $table = $this->getTable();
+
+        $tableColumns = $table->getColumns();
+
+        $script .= "
+    /**
+     * holds an array of fieldnames
+     *
+     * first dimension keys are the type constants
+     * e.g. self::\$fieldNames[self::TYPE_PHPNAME][0] = 'Id'
+     */
+    protected static \$fieldNames = array (
+        TableMap::TYPE_PHPNAME => array (";
+        foreach ($tableColumns as $col) {
+            $script .= "'".$col->getPhpName()."', ";
+        }
+        $script .= "),
+        TableMap::TYPE_STUDLYPHPNAME => array (";
+        foreach ($tableColumns as $col) {
+            $script .= "'".$col->getStudlyPhpName()."', ";
+        }
+        $script .= "),
+        TableMap::TYPE_COLNAME => array (";
+        foreach ($tableColumns as $col) {
+            $script .= $this->getColumnConstant($col, 'self').", ";
+        }
+        $script .= "),
+        TableMap::TYPE_RAW_COLNAME => array (";
+        foreach ($tableColumns as $col) {
+            $script .= "'" . $col->getConstantColumnName() . "', ";
+        }
+        $script .= "),
+        TableMap::TYPE_FIELDNAME => array (";
+        foreach ($tableColumns as $col) {
+            $script .= "'".$col->getName()."', ";
+        }
+        $script .= "),
+        TableMap::TYPE_NUM => array (";
+        foreach ($tableColumns as $num => $col) {
+            $script .= "$num, ";
+        }
+        $script .= ")
+    );
+";
+    }
+
+    protected function addFieldKeysAttribute(&$script)
+    {
+        $table = $this->getTable();
+
+        $tableColumns = $table->getColumns();
+
+        $script .= "
+    /**
+     * holds an array of keys for quick access to the fieldnames array
+     *
+     * first dimension keys are the type constants
+     * e.g. self::\$fieldNames[TableMap::TYPE_PHPNAME]['Id'] = 0
+     */
+    protected static \$fieldKeys = array (
+        TableMap::TYPE_PHPNAME => array (";
+        foreach ($tableColumns as $num => $col) {
+            $script .= "'".$col->getPhpName()."' => $num, ";
+        }
+        $script .= "),
+        TableMap::TYPE_STUDLYPHPNAME => array (";
+        foreach ($tableColumns as $num => $col) {
+            $script .= "'".$col->getStudlyPhpName()."' => $num, ";
+        }
+        $script .= "),
+        TableMap::TYPE_COLNAME => array (";
+        foreach ($tableColumns as $num => $col) {
+            $script .= $this->getColumnConstant($col, 'self')." => $num, ";
+        }
+        $script .= "),
+        TableMap::TYPE_RAW_COLNAME => array (";
+        foreach ($tableColumns as $num => $col) {
+            $script .= "'" . $col->getConstantColumnName() . "' => $num, ";
+        }
+        $script .= "),
+        TableMap::TYPE_FIELDNAME => array (";
+        foreach ($tableColumns as $num => $col) {
+            $script .= "'".$col->getName()."' => $num, ";
+        }
+        $script .= "),
+        TableMap::TYPE_NUM => array (";
+        foreach ($tableColumns as $num => $col) {
+            $script .= "$num, ";
+        }
+        $script .= ")
+    );
+";
+    } // addFielKeysAttribute
+
+    /**
+     * Adds the valueSet attributes for ENUM columns.
+     * @param      string &$script The script will be modified in this method.
+     */
+    protected function addEnumColumnAttributes(&$script)
+    {
+        $script .= "
+    /** The enumerated values for this table */
+    protected static \$enumValueSets = array(";
+        foreach ($this->getTable()->getColumns() as $col) {
+            if ($col->isEnumType()) {
+                $script .= "
+        self::" . $this->getColumnName($col) ." => array(
+";
+                foreach ($col->getValueSet() as $value) {
+                    $script .= "            " . $this->getStubPeerBuilder()->getClassname() . '::' . $this->getColumnName($col) . '_' . $this->getEnumValueConstant($value) . ",
+";
+                }
+                $script .= "        ),";
+            }
+        }
+        $script .= "
+    );
+";
+    }
+
+    protected function addInstanceAttribute(&$script)
+    {
+        $script .= "
+    /**
+     * @var {$this->getFullyQualifiedClassname()}
+     */
+    static private \$instance = null;
+";
+    }
+
+    protected function addInstanceGetter(&$script)
+    {
+        $script .= "
+    static public function getInstance()
+    {
+        if (null === self::\$instance) {
+            self::\$instance = new self();
+        }
+
+        return self::\$instance;
+    }
+";
+    }
+
+    protected function addGetFieldNames(&$script)
+    {
+        $this->declareClass('\Propel\Runtime\Exception\PropelException');
+
+        $script .= "
+    /**
+     * Returns an array of field names.
+     *
+     * @param      string \$type The type of fieldnames to return:
+     *                      One of the class type constants TableMap::TYPE_PHPNAME, TableMap::TYPE_STUDLYPHPNAME
+     *                      TableMap::TYPE_COLNAME, TableMap::TYPE_FIELDNAME, TableMap::TYPE_NUM
+     * @return     array A list of field names
+     */
+
+    static public function getFieldNames(\$type = TableMap::TYPE_PHPNAME)
+    {
+        if (!array_key_exists(\$type, self::\$fieldNames)) {
+            throw new PropelException('Method getFieldNames() expects the parameter \$type to be one of the class constants TableMap::TYPE_PHPNAME, TableMap::TYPE_STUDLYPHPNAME, TableMap::TYPE_COLNAME, TableMap::TYPE_FIELDNAME, TableMap::TYPE_NUM. ' . \$type . ' was given.');
+        }
+
+        return self::\$fieldNames[\$type];
+    }
+";
+
+    } // addGetFieldNames()
+
+    protected function addTranslateFieldName(&$script)
+    {
+        $this->declareClass('\Propel\Runtime\Exception\PropelException');
+
+        $script .= "
+    /**
+     * Translates a fieldname to another type
+     *
+     * @param      string \$name field name
+     * @param      string \$fromType One of the class type constants TableMap::TYPE_PHPNAME, TableMap::TYPE_STUDLYPHPNAME
+     *                         TableMap::TYPE_COLNAME, TableMap::TYPE_FIELDNAME, TableMap::TYPE_NUM
+     * @param      string \$toType   One of the class type constants
+     * @return     string translated name of the field.
+     * @throws     PropelException - if the specified name could not be found in the fieldname mappings.
+     */
+    static public function translateFieldName(\$name, \$fromType, \$toType)
+    {
+        \$toNames = self::getFieldNames(\$toType);
+        \$key = isset(self::\$fieldKeys[\$fromType][\$name]) ? self::\$fieldKeys[\$fromType][\$name] : null;
+        if (\$key === null) {
+            throw new PropelException(\"'\$name' could not be found in the field names of type '\$fromType'. These are: \" . print_r(self::\$fieldKeys[\$fromType], true));
+        }
+
+        return \$toNames[\$key];
+    }
+";
+    } // addTranslateFieldName()
+
+    /**
+     * Adds the getValueSets() method.
+     * @param      string &$script The script will be modified in this method.
+     */
+    protected function addGetValueSets(&$script)
+    {
+        $this->declareClassFromBuilder($this->getTableMapBuilder());
+        $callingClass = $this->getStubPeerBuilder()->getClassname();
+        $script .= "
+    /**
+     * Gets the list of values for all ENUM columns
+     * @return array
+     */
+    static public function getValueSets()
+    {
+      return {$callingClass}::\$enumValueSets;
+    }
+";
+    }
+
+    /**
+     * Adds the getValueSet() method.
+     * @param      string &$script The script will be modified in this method.
+     */
+    protected function addGetValueSet(&$script)
+    {
+        $this->declareClassFromBuilder($this->getTableMapBuilder());
+        $script .= "
+    /**
+     * Gets the list of values for an ENUM column
+     * @return array list of possible values for the column
+     */
+    static public function getValueSet(\$colname)
+    {
+        \$valueSets = self::getValueSets();
+
+        return \$valueSets[\$colname];
+    }
+";
+    }
+
+    /**
+     * Adds the CLASSKEY_* and CLASSNAME_* constants used for inheritance.
+     * @param      string &$script The script will be modified in this method.
+     */
+    public function addInheritanceColumnConstants(&$script)
+    {
+        if (!$col = $this->getTable()->getChildrenColumn()) {
+            return;
+        }
+
+        if (!$col->isEnumeratedClasses()) {
+            return;
+        }
+
+        foreach ($col->getChildren() as $child) {
+            $childBuilder = $this->getMultiExtendObjectBuilder();
+            $childBuilder->setChild($child);
+            $fqcn = addslashes($childBuilder->getFullyQualifiedClassname());
+
+            $script .= "
+    /** A key representing a particular subclass */
+    const CLASSKEY_".strtoupper($child->getKey())." = '" . $child->getKey() . "';
+";
+
+            if (strtoupper($child->getClassname()) != strtoupper($child->getKey())) {
+                $script .= "
+    /** A key representing a particular subclass */
+    const CLASSKEY_".strtoupper($child->getClassname())." = '" . $child->getKey() . "';
+";
+            }
+
+            $script .= "
+    /** A class that can be returned by this peer. */
+    const CLASSNAME_".strtoupper($child->getKey())." = '". $fqcn . "';
+";
+        }
+    }
+
+    public function getColumnName(Column $col, $phpName = null)
+    {
+        // was it overridden in schema.xml ?
+        if ($col->getPeerName()) {
+            $const = strtoupper($col->getPeerName());
+        } else {
+            $const = strtoupper($col->getName());
+        }
+
+        if (null !== $phpName) {
+            return sprintf('%sTableMap::$s', $phpName, $const);
+        }
+
+        return $const;
+    }
+
+    /**
+     * Adds the static map builder registration code.
+     * @param      string &$script The script will be modified in this method.
+     */
+    protected function addStaticTableMapRegistration(&$script)
+    {
+        $script .= "
+// This is the static code needed to register the TableMap for this table with the main Propel class.
+//
+".$this->getClassName()."::buildTableMap();
+
+";
+$this->applyBehaviorModifier('tableMapFilter', $script, '');
+    }
+
+    /**
+     * Adds the buildTableMap() method.
+     * @param      string &$script The script will be modified in this method.
+     */
+    protected function addBuildTableMap(&$script)
+    {
+        $this->declareClass('\Propel\Runtime\Propel');
+        $this->declareClassFromBuilder($this->getTableMapBuilder());
+
+        $script .= "
+    /**
+     * Add a TableMap instance to the database for this peer class.
+     */
+    static public function buildTableMap()
+    {
+      \$dbMap = Propel::getServiceContainer()->getDatabaseMap(".$this->getClassname()."::DATABASE_NAME);
+      if (!\$dbMap->hasTable(".$this->getClassname()."::TABLE_NAME))
+      {
+        \$dbMap->addTableObject(new ".$this->getClassname()."());
+      }
+    }
+";
     }
 }

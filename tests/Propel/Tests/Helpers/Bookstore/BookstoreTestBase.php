@@ -12,7 +12,7 @@ namespace Propel\Tests\Helpers\Bookstore;
 
 use Propel\Runtime\Propel;
 
-use Propel\Tests\Bookstore\BookPeer;
+use Propel\Tests\Bookstore\Map\BookTableMap;
 
 /**
  * Base class contains some methods shared by subclass test cases.
@@ -41,7 +41,7 @@ abstract class BookstoreTestBase extends \PHPUnit_Framework_TestCase
      */
     protected function setUp()
     {
-        $this->con = Propel::getServiceContainer()->getConnection(BookPeer::DATABASE_NAME);
+        $this->con = Propel::getServiceContainer()->getConnection(BookTableMap::DATABASE_NAME);
         $this->con->beginTransaction();
     }
 

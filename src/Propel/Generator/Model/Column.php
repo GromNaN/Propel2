@@ -443,7 +443,7 @@ class Column extends XmlElement
      */
     public function getConstantName()
     {
-        $classname = $this->getTable()->getPhpName() . 'Peer';
+        $classname = $this->getTable()->getPhpName() . 'TableMap';
         $const = $this->getConstantColumnName();
 
         return $classname.'::'.$const;

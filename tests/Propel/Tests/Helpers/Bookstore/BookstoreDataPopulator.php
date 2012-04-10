@@ -279,9 +279,31 @@ class BookstoreDataPopulator
             '\Propel\Tests\Bookstore\ReviewPeer',
             '\Propel\Tests\Bookstore\BookSummaryPeer',
         );
+        $tableMapClasses = array(
+            '\Propel\Tests\Bookstore\Map\AuthorTableMap',
+            '\Propel\Tests\Bookstore\Map\BookstoreTableMap',
+            '\Propel\Tests\Bookstore\Map\BookstoreContestTableMap',
+            '\Propel\Tests\Bookstore\Map\BookstoreContestEntryTableMap',
+            '\Propel\Tests\Bookstore\Map\BookstoreEmployeeTableMap',
+            '\Propel\Tests\Bookstore\Map\BookstoreEmployeeAccountTableMap',
+            '\Propel\Tests\Bookstore\Map\BookstoreSaleTableMap',
+            '\Propel\Tests\Bookstore\Map\BookClubListTableMap',
+            '\Propel\Tests\Bookstore\Map\BookOpinionTableMap',
+            '\Propel\Tests\Bookstore\Map\BookReaderTableMap',
+            '\Propel\Tests\Bookstore\Map\BookListRelTableMap',
+            '\Propel\Tests\Bookstore\Map\BookTableMap',
+            '\Propel\Tests\Bookstore\Map\ContestTableMap',
+            '\Propel\Tests\Bookstore\Map\CustomerTableMap',
+            '\Propel\Tests\Bookstore\Map\MediaTableMap',
+            '\Propel\Tests\Bookstore\Map\PublisherTableMap',
+            '\Propel\Tests\Bookstore\Map\ReaderFavoriteTableMap',
+            '\Propel\Tests\Bookstore\Map\ReviewTableMap',
+            '\Propel\Tests\Bookstore\Map\BookSummaryTableMap',
+        );
+
         // free the memory from existing objects
-        foreach ($peerClasses as $peerClass) {
-            foreach ($peerClass::$instances as $i) {
+        foreach ($tableMapClasses as $tableMapClass) {
+            foreach ($tableMapClass::$instances as $i) {
                 $i->clearAllReferences();
             }
         }

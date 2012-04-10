@@ -43,59 +43,6 @@ class BasePeer
     private static $validatorMap = array();
 
     /**
-     * phpname type
-     * e.g. 'AuthorId'
-     */
-    const TYPE_PHPNAME = 'phpName';
-
-    /**
-     * studlyphpname type
-     * e.g. 'authorId'
-     */
-    const TYPE_STUDLYPHPNAME = 'studlyPhpName';
-
-    /**
-     * column (peer) name type
-     * e.g. 'book.AUTHOR_ID'
-     */
-    const TYPE_COLNAME = 'colName';
-
-    /**
-     * column part of the column peer name
-     * e.g. 'AUTHOR_ID'
-     */
-    const TYPE_RAW_COLNAME = 'rawColName';
-
-    /**
-     * column fieldname type
-     * e.g. 'author_id'
-     */
-    const TYPE_FIELDNAME = 'fieldName';
-
-    /**
-     * num type
-     * simply the numerical array index, e.g. 4
-     */
-    const TYPE_NUM = 'num';
-
-    static public function getFieldnames($classname, $type = self::TYPE_PHPNAME)
-    {
-        $peerclass  = $classname . 'Peer';
-        $callable   = array($peerclass, 'getFieldnames');
-
-        return call_user_func($callable, $type);
-    }
-
-    static public function translateFieldname($classname, $fieldname, $fromType, $toType)
-    {
-        $peerclass  = $classname . 'Peer';
-        $callable   = array($peerclass, 'translateFieldname');
-        $args       = array($fieldname, $fromType, $toType);
-
-        return call_user_func_array($callable, $args);
-    }
-
-    /**
      * Method to perform deletes based on values and keys in a
      * Criteria.
      *

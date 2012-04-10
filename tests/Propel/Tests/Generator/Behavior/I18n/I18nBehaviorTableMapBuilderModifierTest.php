@@ -14,14 +14,14 @@ use Propel\Generator\Util\QuickBuilder;
 use Propel\Generator\Behavior\I18n\I18nBehavior;
 
 use Propel\Runtime\Propel;
-use Propel\Runtime\Util\BasePeer;
+use Propel\Runtime\Map\TableMap;
 
 /**
  * Tests for I18nBehavior class peer modifier
  *
  * @author     François Zaninotto
  */
-class I18nBehaviorPeerBuilderModifierTest extends \PHPUnit_Framework_TestCase
+class I18nBehaviorTableMapBuilderModifierTest extends \PHPUnit_Framework_TestCase
 {
     public function testDefaultLocaleConstant()
     {
@@ -40,8 +40,8 @@ class I18nBehaviorPeerBuilderModifierTest extends \PHPUnit_Framework_TestCase
 </database>
 EOF;
         QuickBuilder::buildSchema($schema);
-        $this->assertEquals('en_EN', \I18nBehaviorTest01Peer::DEFAULT_LOCALE);
-        $this->assertEquals('fr_FR', \I18nBehaviorTest02Peer::DEFAULT_LOCALE);
+        $this->assertEquals('en_EN', \I18nBehaviorTest01TableMap::DEFAULT_LOCALE);
+        $this->assertEquals('fr_FR', \I18nBehaviorTest02TableMap::DEFAULT_LOCALE);
     }
 
     public function testFieldKeys()
@@ -60,7 +60,7 @@ EOF;
 </database>
 EOF;
         QuickBuilder::buildSchema($schema);
-        $this->assertEquals(array(0, 1, 2), \I18nBehaviorTest03Peer::getFieldNames(BasePeer::TYPE_NUM));
+        $this->assertEquals(array(0, 1, 2), \I18nBehaviorTest03TableMap::getFieldNames(TableMap::TYPE_NUM));
     }
 
 }

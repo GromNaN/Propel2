@@ -145,24 +145,9 @@ abstract class AbstractPeerBuilder extends AbstractOMBuilder
         $table = $this->getTable();
 
         if (!$table->isAlias()) {
-            $this->addConstantsAndAttributes($script);
-        }
-
-        $this->addTranslateFieldName($script);
-        $this->addGetFieldNames($script);
-
-        if ($table->hasEnumColumns()) {
-            $this->addGetValueSets($script);
-            $this->addGetValueSet($script);
-        }
-
-        if (!$table->isAlias()) {
-            $this->addAlias($script); // alias() utility method (deprecated?)
             $this->addSelectMethods($script);
             $this->addGetTableMap($script);
         }
-
-        $this->addBuildTableMap($script);
 
         $this->addGetOMClassMethod($script);
 

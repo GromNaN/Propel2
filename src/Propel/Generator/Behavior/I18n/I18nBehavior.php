@@ -18,7 +18,6 @@ use Propel\Generator\Model\PropelTypes;
  * Allows translation of text columns through transparent one-to-many relationship
  *
  * @author    Francois Zaninotto
- * @version        $Revision$
  */
 class I18nBehavior extends Behavior
 {
@@ -26,19 +25,19 @@ class I18nBehavior extends Behavior
 
     // default parameters value
     protected $parameters = array(
-        'i18n_table'    => '%TABLE%_i18n',
-        'i18n_phpname'  => '%PHPNAME%I18n',
-        'i18n_columns'  => '',
-        'locale_column' => 'locale',
-        'default_locale' => null,
-        'locale_alias'  => '',
+        'i18n_table'        => '%TABLE%_i18n',
+        'i18n_phpname'      => '%PHPNAME%I18n',
+        'i18n_columns'      => '',
+        'locale_column'     => 'locale',
+        'default_locale'    => null,
+        'locale_alias'      => '',
     );
 
     protected $tableModificationOrder = 70;
 
     protected $objectBuilderModifier;
     protected $queryBuilderModifier;
-    protected $peerBuilderModifier;
+    protected $tableMapBuilderModifier;
     protected $i18nTable;
 
     public function modifyDatabase()
@@ -263,13 +262,12 @@ class I18nBehavior extends Behavior
         return $this->queryBuilderModifier;
     }
 
-    public function getPeerBuilderModifier()
+    public function getTableMapBuilderModifier()
     {
-        if (is_null($this->peerBuilderModifier)) {
-            $this->peerBuilderModifier = new I18nBehaviorPeerBuilderModifier($this);
+        if (is_null($this->tableMapBuilderModifier)) {
+            $this->tableMapBuilderModifier = new I18nBehaviorTableMapBuilderModifier($this);
         }
 
-        return $this->peerBuilderModifier;
+        return $this->tableMapBuilderModifier;
     }
-
 }

@@ -150,7 +150,10 @@ class QuickBuilder
 
     public function buildClasses(array $classTargets = null)
     {
-        eval($this->getClasses($classTargets));
+        $code = $this->getClasses($classTargets);
+
+        file_put_contents('/tmp/propel2.'.time(), $code);
+        eval($code);
     }
 
     public function getClasses(array $classTargets = null)

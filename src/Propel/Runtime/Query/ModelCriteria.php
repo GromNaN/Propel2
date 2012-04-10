@@ -23,6 +23,7 @@ use Propel\Runtime\Formatter\AbstractFormatter;
 use Propel\Runtime\Formatter\ObjectFormatter;
 use Propel\Runtime\Map\ColumnMap;
 use Propel\Runtime\Map\RelationMap;
+use Propel\Runtime\Map\TableMap;
 use Propel\Runtime\Util\BasePeer;
 use Propel\Runtime\Util\PropelModelPager;
 use Propel\Runtime\Query\Criteria;
@@ -186,7 +187,7 @@ class ModelCriteria extends Criteria
     }
 
     /**
-     * Returns the TabkleMap object for this Criteria
+     * Returns the TableMap object for this Criteria
      *
      * @return TableMap
      */
@@ -1241,7 +1242,7 @@ class ModelCriteria extends Criteria
             $class = $this->getModelName();
             $obj = new $class();
             foreach ($this->keys() as $key) {
-                $obj->setByName($key, $this->getValue($key), BasePeer::TYPE_COLNAME);
+                $obj->setByName($key, $this->getValue($key), TableMap::TYPE_COLNAME);
             }
             $ret = $this->getFormatter()->formatRecord($obj);
         }

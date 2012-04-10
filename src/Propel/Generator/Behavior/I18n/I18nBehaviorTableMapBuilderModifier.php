@@ -12,11 +12,11 @@ namespace Propel\Generator\Behavior\I18n;
 
 /**
  * Allows translation of text columns through transparent one-to-many relationship.
- * Modifier for the peer builder.
+ * Modifier for the table map builder.
  *
  * @author     François Zaninotto
  */
-class I18nBehaviorPeerBuilderModifier
+class I18nBehaviorTableMapBuilderModifier
 {
     protected $behavior;
 
