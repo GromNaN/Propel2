@@ -62,7 +62,7 @@ class ObjectBuilder extends AbstractObjectBuilder
 
     public function getTableMapClass()
     {
-        return $this->getStubObjectBuilder()->getClassname().'TableMap';
+        return $this->getStubObjectBuilder()->getUnqualifiedClassName().'TableMap';
     }
 
     /**

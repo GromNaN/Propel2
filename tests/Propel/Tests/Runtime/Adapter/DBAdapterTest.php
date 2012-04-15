@@ -14,7 +14,7 @@ use Propel\Runtime\Propel;
 use Propel\Runtime\Query\Criteria;
 
 use Propel\Tests\Helpers\Bookstore\BookstoreTestBase;
-use Propel\Tests\Bookstore\BookPeer;
+use Propel\Tests\Bookstore\Map\BookTableMap;
 
 /**
  * Tests the DbOracle adapter
@@ -27,64 +27,64 @@ class AbstractAdapterTest extends BookstoreTestBase
 
     public function testTurnSelectColumnsToAliases()
     {
-        $db = Propel::getServiceContainer()->getAdapter(BookPeer::DATABASE_NAME);
+        $db = Propel::getServiceContainer()->getAdapter(BookTableMap::DATABASE_NAME);
         $c1 = new Criteria();
-        $c1->addSelectColumn(BookPeer::ID);
+        $c1->addSelectColumn(BookTableMap::ID);
         $db->turnSelectColumnsToAliases($c1);
 
         $c2 = new Criteria();
-        $c2->addAsColumn('book_ID', BookPeer::ID);
+        $c2->addAsColumn('book_ID', BookTableMap::ID);
         $this->assertTrue($c1->equals($c2));
     }
 
     public function testTurnSelectColumnsToAliasesPreservesAliases()
     {
-        $db = Propel::getServiceContainer()->getAdapter(BookPeer::DATABASE_NAME);
+        $db = Propel::getServiceContainer()->getAdapter(BookTableMap::DATABASE_NAME);
         $c1 = new Criteria();
-        $c1->addSelectColumn(BookPeer::ID);
-        $c1->addAsColumn('foo', BookPeer::TITLE);
+        $c1->addSelectColumn(BookTableMap::ID);
+        $c1->addAsColumn('foo', BookTableMap::TITLE);
         $db->turnSelectColumnsToAliases($c1);
 
         $c2 = new Criteria();
-        $c2->addAsColumn('book_ID', BookPeer::ID);
-        $c2->addAsColumn('foo', BookPeer::TITLE);
+        $c2->addAsColumn('book_ID', BookTableMap::ID);
+        $c2->addAsColumn('foo', BookTableMap::TITLE);
         $this->assertTrue($c1->equals($c2));
     }
 
     public function testTurnSelectColumnsToAliasesExisting()
     {
-        $db = Propel::getServiceContainer()->getAdapter(BookPeer::DATABASE_NAME);
+        $db = Propel::getServiceContainer()->getAdapter(BookTableMap::DATABASE_NAME);
         $c1 = new Criteria();
-        $c1->addSelectColumn(BookPeer::ID);
-        $c1->addAsColumn('book_ID', BookPeer::ID);
+        $c1->addSelectColumn(BookTableMap::ID);
+        $c1->addAsColumn('book_ID', BookTableMap::ID);
         $db->turnSelectColumnsToAliases($c1);
 
         $c2 = new Criteria();
-        $c2->addAsColumn('book_ID_1', BookPeer::ID);
-        $c2->addAsColumn('book_ID', BookPeer::ID);
+        $c2->addAsColumn('book_ID_1', BookTableMap::ID);
+        $c2->addAsColumn('book_ID', BookTableMap::ID);
         $this->assertTrue($c1->equals($c2));
     }
 
     public function testTurnSelectColumnsToAliasesDuplicate()
     {
-        $db = Propel::getServiceContainer()->getAdapter(BookPeer::DATABASE_NAME);
+        $db = Propel::getServiceContainer()->getAdapter(BookTableMap::DATABASE_NAME);
         $c1 = new Criteria();
-        $c1->addSelectColumn(BookPeer::ID);
-        $c1->addSelectColumn(BookPeer::ID);
+        $c1->addSelectColumn(BookTableMap::ID);
+        $c1->addSelectColumn(BookTableMap::ID);
         $db->turnSelectColumnsToAliases($c1);
 
         $c2 = new Criteria();
-        $c2->addAsColumn('book_ID', BookPeer::ID);
-        $c2->addAsColumn('book_ID_1', BookPeer::ID);
+        $c2->addAsColumn('book_ID', BookTableMap::ID);
+        $c2->addAsColumn('book_ID_1', BookTableMap::ID);
         $this->assertTrue($c1->equals($c2));
     }
 
     public function testCreateSelectSqlPart()
     {
-        $db = Propel::getServiceContainer()->getAdapter(BookPeer::DATABASE_NAME);
+        $db = Propel::getServiceContainer()->getAdapter(BookTableMap::DATABASE_NAME);
         $c = new Criteria();
-        $c->addSelectColumn(BookPeer::ID);
-        $c->addAsColumn('book_ID', BookPeer::ID);
+        $c->addSelectColumn(BookTableMap::ID);
+        $c->addAsColumn('book_ID', BookTableMap::ID);
         $fromClause = array();
         $selectSql = $db->createSelectSqlPart($c, $fromClause);
         $this->assertEquals('SELECT book.ID, book.ID AS book_ID', $selectSql, 'createSelectSqlPart() returns a SQL SELECT clause with both select and as columns');
@@ -93,10 +93,10 @@ class AbstractAdapterTest extends BookstoreTestBase
 
     public function testCreateSelectSqlPartSelectModifier()
     {
-        $db = Propel::getServiceContainer()->getAdapter(BookPeer::DATABASE_NAME);
+        $db = Propel::getServiceContainer()->getAdapter(BookTableMap::DATABASE_NAME);
         $c = new Criteria();
-        $c->addSelectColumn(BookPeer::ID);
-        $c->addAsColumn('book_ID', BookPeer::ID);
+        $c->addSelectColumn(BookTableMap::ID);
+        $c->addAsColumn('book_ID', BookTableMap::ID);
         $c->setDistinct();
         $fromClause = array();
         $selectSql = $db->createSelectSqlPart($c, $fromClause);
@@ -106,10 +106,10 @@ class AbstractAdapterTest extends BookstoreTestBase
 
     public function testCreateSelectSqlPartAliasAll()
     {
-        $db = Propel::getServiceContainer()->getAdapter(BookPeer::DATABASE_NAME);
+        $db = Propel::getServiceContainer()->getAdapter(BookTableMap::DATABASE_NAME);
         $c = new Criteria();
-        $c->addSelectColumn(BookPeer::ID);
-        $c->addAsColumn('book_ID', BookPeer::ID);
+        $c->addSelectColumn(BookTableMap::ID);
+        $c->addAsColumn('book_ID', BookTableMap::ID);
         $fromClause = array();
         $selectSql = $db->createSelectSqlPart($c, $fromClause, true);
         $this->assertEquals('SELECT book.ID AS book_ID_1, book.ID AS book_ID', $selectSql, 'createSelectSqlPart() aliases all columns if passed true as last parameter');

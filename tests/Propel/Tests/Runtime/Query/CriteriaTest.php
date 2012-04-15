@@ -10,29 +10,28 @@
 
 namespace Propel\Tests\Runtime\Query;
 
-use Propel\Tests\Helpers\Bookstore\BookstoreTestBase;
-use Propel\Tests\Bookstore\BookPeer;
 
-use Propel\Runtime\Propel;
 use Propel\Runtime\Adapter\Pdo\MysqlAdapter;
 use Propel\Runtime\Adapter\Pdo\PgsqlAdapter;
 use Propel\Runtime\Adapter\Pdo\SqliteAdapter;
+use Propel\Runtime\Propel;
 use Propel\Runtime\Query\Criteria;
 use Propel\Runtime\Query\Join;
 use Propel\Runtime\Util\BasePeer;
+use Propel\Tests\Bookstore\BookPeer;
+use Propel\Tests\Bookstore\Map\BookTableMap;
+use Propel\Tests\Helpers\Bookstore\BookstoreTestBase;
 
 use \PDO;
 
 /**
  * Test class for Criteria.
  *
- * @author     <a href="mailto:celkins@scardini.com">Christopher Elkins</a>
- * @author     <a href="mailto:sam@neurogrid.com">Sam Joseph</a>
- * @version    $Id$
+ * @author     Christopher Elkins <celkins@scardini.com>
+ * @author     Sam Joseph <sam@neurogrid.com>
  */
 class CriteriaTest extends BookstoreTestBase
 {
-
     /**
      * The criteria to use in the test.
      * @var        Criteria
@@ -354,7 +353,7 @@ class CriteriaTest extends BookstoreTestBase
 
         $criteria = new Criteria();
         $criteria->setIgnoreCase(true);
-        $criteria->addAscendingOrderByColumn(BookPeer::TITLE);
+        $criteria->addAscendingOrderByColumn(BookTableMap::TITLE);
         BookPeer::addSelectColumns($criteria);
         $params=array();
         $sql = BasePeer::createSelectSql($criteria, $params);
@@ -928,8 +927,8 @@ class CriteriaTest extends BookstoreTestBase
     public function testHaving()
     {
         $c = new Criteria();
-        $c->addSelectColumn(BookPeer::TITLE);
-        $c->addAsColumn('isb_n', BookPeer::ISBN);
+        $c->addSelectColumn(BookTableMap::TITLE);
+        $c->addAsColumn('isb_n', BookTableMap::ISBN);
         $crit = $c->getNewCriterion('isb_n', '1234567890123');
         $c->addHaving($crit);
         $expected = 'SELECT book.TITLE, book.ISBN AS isb_n FROM book HAVING isb_n=:p1';
@@ -944,8 +943,8 @@ class CriteriaTest extends BookstoreTestBase
     public function testHavingRaw()
     {
         $c = new Criteria();
-        $c->addSelectColumn(BookPeer::TITLE);
-        $c->addAsColumn("isb_n", BookPeer::ISBN);
+        $c->addSelectColumn(BookTableMap::TITLE);
+        $c->addAsColumn("isb_n", BookTableMap::ISBN);
         $c->addHaving('isb_n = ?', '1234567890123', PDO::PARAM_STR);
         $expected = 'SELECT book.TITLE, book.ISBN AS isb_n FROM book HAVING isb_n = :p1';
         $params = array();

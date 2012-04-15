@@ -63,6 +63,8 @@ class ModelCriteria extends Criteria
 
     protected $modelPeerName;
 
+    protected $tableMapClass;
+
     protected $modelAlias;
 
     protected $useAliasInSQL = false;
@@ -107,8 +109,9 @@ class ModelCriteria extends Criteria
         }
 
         $this->modelPeerName = constant($this->modelName . '::PEER');
-        $this->modelAlias = $modelAlias;
-        $this->tableMap = Propel::getServiceContainer()->getDatabaseMap($this->getDbName())->getTableByPhpName($this->modelName);
+        $this->modelAlias    = $modelAlias;
+        $this->tableMap      = Propel::getServiceContainer()->getDatabaseMap($this->getDbName())->getTableByPhpName($this->modelName);
+        $this->tableMapClass = get_class($this->tableMap);
     }
 
     /**
@@ -194,6 +197,17 @@ class ModelCriteria extends Criteria
     public function getTableMap()
     {
         return $this->tableMap;
+    }
+
+    /**
+     * Returns the class name of the TableMap object
+     * for this Criteria.
+     *
+     * @return string
+     */
+    public function getTableMapClass()
+    {
+        return $this->tableMapClass;
     }
 
     /**
@@ -542,7 +556,7 @@ class ModelCriteria extends Criteria
 
         if ('*' === $columnArray) {
             $columnArray = array();
-            foreach (call_user_func(array($this->modelPeerName, 'getFieldNames'), BasePeer::TYPE_PHPNAME) as $column) {
+            foreach (call_user_func(array($this->getTableMap(), 'getFieldNames'), BasePeer::TYPE_PHPNAME) as $column) {
                 $columnArray []= $this->modelName . '.' . $column;
             }
         }
@@ -582,7 +596,7 @@ class ModelCriteria extends Criteria
         // it will be impossible for the BasePeer::createSelectSql() method to determine which
         // tables go into the FROM clause.
         if (!$this->selectQueries) {
-            $this->setPrimaryTableName(constant($this->modelPeerName . '::TABLE_NAME'));
+            $this->setPrimaryTableName(constant($this->getTableMapClass() . '::TABLE_NAME'));
         }
 
         // Add requested columns which are not withColumns
@@ -643,7 +657,7 @@ class ModelCriteria extends Criteria
      *   $c->join('Book.Author', Criteria::RIGHT_JOIN);
      *    => $c->addJoin(BookPeer::AUTHOR_ID, AuthorPeer::ID, Criteria::RIGHT_JOIN);
      *   $c->join('Book.Author a', Criteria::RIGHT_JOIN);
-     *    => $c->addAlias('a', AuthorPeer::TABLE_NAME);
+     *    => $c->addAlias('a', AuthorTableMap::TABLE_NAME);
      *    => $c->addJoin(BookPeer::AUTHOR_ID, 'a.ID', Criteria::RIGHT_JOIN);
      * </code>
      *
@@ -1468,7 +1482,7 @@ class ModelCriteria extends Criteria
         // We need to set the primary table name, since in the case that there are no WHERE columns
         // it will be impossible for the BasePeer::createSelectSql() method to determine which
         // tables go into the FROM clause.
-        $criteria->setPrimaryTableName(constant($this->modelPeerName.'::TABLE_NAME'));
+        $criteria->setPrimaryTableName(constant($this->getTableMapClass() . '::TABLE_NAME'));
 
         $stmt = $criteria->doCount($con);
         if ($row = $stmt->fetch(PDO::FETCH_NUM)) {
@@ -1732,7 +1746,7 @@ class ModelCriteria extends Criteria
         }
 
         $criteria = $this->isKeepQuery() ? clone $this : $this;
-        $criteria->setPrimaryTableName(constant($this->modelPeerName.'::TABLE_NAME'));
+        $criteria->setPrimaryTableName(constant($this->getTableMapClass() . '::TABLE_NAME'));
 
         $con->beginTransaction();
         try {

@@ -11,18 +11,16 @@
 
 namespace Propel\Tests\Runtime\Validator;
 
+use Propel\Runtime\Validator\MatchValidator;
+use Propel\Tests\Bookstore\Author;
+use Propel\Tests\Bookstore\Book;
+use Propel\Tests\Bookstore\Review;
+use Propel\Tests\Bookstore\Map\AuthorTableMap;
+use Propel\Tests\Bookstore\Map\BookTableMap;
+use Propel\Tests\Bookstore\Map\ReviewTableMap;
 use Propel\Tests\Helpers\Bookstore\BookstoreEmptyTestBase;
 use Propel\Tests\Helpers\Bookstore\BookstoreDataPopulator;
 use Propel\Tests\Helpers\Bookstore\Validator\ISBNValidator;
-
-use Propel\Tests\Bookstore\Author;
-use Propel\Tests\Bookstore\AuthorPeer;
-use Propel\Tests\Bookstore\Book;
-use Propel\Tests\Bookstore\BookPeer;
-use Propel\Tests\Bookstore\Review;
-use Propel\Tests\Bookstore\ReviewPeer;
-
-use Propel\Runtime\Validator\MatchValidator;
 
 /**
  * Tests the validator classes.
@@ -104,9 +102,9 @@ class ValidatorTest extends BookstoreEmptyTestBase
 
         /* Make sure correct columns failed */
         $expectedCols = array(
-        AuthorPeer::LAST_NAME,
-        BookPeer::TITLE,
-        ReviewPeer::REVIEWED_BY
+        AuthorTableMap::LAST_NAME,
+        BookTableMap::TITLE,
+        ReviewTableMap::REVIEWED_BY
         );
         $returnedCols = array_keys($failures);
 
@@ -131,7 +129,7 @@ class ValidatorTest extends BookstoreEmptyTestBase
         $book->setAuthor($author);
         $book->addReview($review);
 
-        $cols = array(AuthorPeer::LAST_NAME, ReviewPeer::REVIEWED_BY);
+        $cols = array(AuthorTableMap::LAST_NAME, ReviewTableMap::REVIEWED_BY);
 
         $res = $book->validate($cols);
 
@@ -144,8 +142,8 @@ class ValidatorTest extends BookstoreEmptyTestBase
 
         /* Make sure correct columns failed */
         $expectedCols = array(
-        AuthorPeer::LAST_NAME,
-        ReviewPeer::REVIEWED_BY
+        AuthorTableMap::LAST_NAME,
+        ReviewTableMap::REVIEWED_BY
         );
 
         $returnedCols = array_keys($failures);
@@ -178,7 +176,7 @@ class ValidatorTest extends BookstoreEmptyTestBase
 
         $failures = $author->getValidationFailures();
         $this->assertEquals(1, count($failures), "Expected 1 column to fail validation.");
-        $this->assertEquals(array(AuthorPeer::EMAIL), array_keys($failures), "Expected EMAIL to fail validation.");
+        $this->assertEquals(array(AuthorTableMap::EMAIL), array_keys($failures), "Expected EMAIL to fail validation.");
 
     }
 
@@ -196,9 +194,9 @@ class ValidatorTest extends BookstoreEmptyTestBase
         $failures = $author->getValidationFailures();
 
         $this->assertEquals(1, count($failures), "Expected 1 column to fail validation.");
-        $this->assertEquals(array(AuthorPeer::EMAIL), array_keys($failures), "Expected EMAIL to fail validation.");
+        $this->assertEquals(array(AuthorTableMap::EMAIL), array_keys($failures), "Expected EMAIL to fail validation.");
 
-        $validator = $failures[AuthorPeer::EMAIL]->getValidator();
+        $validator = $failures[AuthorTableMap::EMAIL]->getValidator();
         $this->assertTrue($validator instanceof MatchValidator, "Expected validator that failed to be MatchValidator");
 
     }
@@ -216,9 +214,9 @@ class ValidatorTest extends BookstoreEmptyTestBase
         $failures = $book->getValidationFailures();
 
         $this->assertEquals(1, count($failures), "Expected 1 column to fail validation.");
-        $this->assertEquals(array(BookPeer::ISBN), array_keys($failures), "Expected EMAIL to fail validation.");
+        $this->assertEquals(array(BookTableMap::ISBN), array_keys($failures), "Expected EMAIL to fail validation.");
 
-        $validator = $failures[BookPeer::ISBN]->getValidator();
+        $validator = $failures[BookTableMap::ISBN]->getValidator();
         $this->assertInstanceOf('Propel\Tests\Helpers\Bookstore\Validator\ISBNValidator', $validator, "Expected validator that failed to be ISBNValidator");
     }
 

@@ -10,14 +10,14 @@
 
 namespace Propel\Runtime\Collection;
 
-use Propel\Runtime\Propel;
 use Propel\Runtime\Collection\Exception\ModelNotFoundException;
 use Propel\Runtime\Exception\BadMethodCallException;
 use Propel\Runtime\Exception\UnexpectedValueException;
 use Propel\Runtime\Formatter\AbstractFormatter;
+use Propel\Runtime\Map\TableMap;
 use Propel\Runtime\Om\BaseObject;
 use Propel\Runtime\Parser\AbstractParser;
-use Propel\Runtime\Util\BasePeer;
+use Propel\Runtime\Propel;
 
 use \ArrayObject;
 use \ArrayIterator;
@@ -472,6 +472,20 @@ class Collection extends ArrayObject implements Serializable
     }
 
     /**
+     * Get the table map class of the elements in the collection
+     *
+     * @return    string  Name of the Propel peer class stored in the collection
+     */
+    public function getTableMapClass()
+    {
+        if ($this->model == '') {
+            throw new ModelNotFoundException('You must set the collection model before interacting with it');
+        }
+
+        return constant($this->getFullyQualifiedModel() . '::TABLE_MAP_CLASS');
+    }
+
+    /**
      * Get the peer class of the elements in the collection
      *
      * @return    string  Name of the Propel peer class stored in the collection
@@ -508,7 +522,7 @@ class Collection extends ArrayObject implements Serializable
      */
     public function getWriteConnection()
     {
-        $databaseName = constant($this->getPeerClass() . '::DATABASE_NAME');
+        $databaseName = constant($this->getTableMapClass() . '::DATABASE_NAME');
 
         return Propel::getServiceContainer()->getWriteConnection($databaseName);
     }
@@ -532,7 +546,7 @@ class Collection extends ArrayObject implements Serializable
             $parser = AbstractParser::getParser($parser);
         }
 
-        return $this->fromArray($parser->listToArray($data), BasePeer::TYPE_PHPNAME);
+        return $this->fromArray($parser->listToArray($data), TableMap::TYPE_PHPNAME);
     }
 
     /**
@@ -561,7 +575,7 @@ class Collection extends ArrayObject implements Serializable
             $parser = AbstractParser::getParser($parser);
         }
 
-        return $parser->listFromArray($this->toArray(null, $usePrefix, BasePeer::TYPE_PHPNAME, $includeLazyLoadColumns));
+        return $parser->listFromArray($this->toArray(null, $usePrefix, TableMap::TYPE_PHPNAME, $includeLazyLoadColumns));
     }
 
     /**
@@ -598,6 +612,6 @@ class Collection extends ArrayObject implements Serializable
      */
     public function __toString()
     {
-        return (string) $this->exportTo(constant($this->getPeerClass() . '::DEFAULT_STRING_FORMAT'));
+        return (string) $this->exportTo(constant($this->getTableMapClass() . '::DEFAULT_STRING_FORMAT'));
     }
 }

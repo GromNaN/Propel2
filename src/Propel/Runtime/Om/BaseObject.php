@@ -13,8 +13,8 @@ namespace Propel\Runtime\Om;
 use Propel\Runtime\Connection\ConnectionInterface;
 use Propel\Runtime\Exception\BadMethodCallException;
 use Propel\Runtime\Exception\PropelException;
+use Propel\Runtime\Map\TableMap;
 use Propel\Runtime\Parser\AbstractParser;
-use Propel\Runtime\Util\BasePeer;
 
 /**
  * This class contains attributes and methods that are used by all
@@ -81,7 +81,7 @@ abstract class BaseObject
     /**
      * Has specified column been modified?
      *
-     * @param      string $col column fully qualified name (BasePeer::TYPE_COLNAME), e.g. Book::AUTHOR_ID
+     * @param      string $col column fully qualified name (TableMap::TYPE_COLNAME), e.g. Book::AUTHOR_ID
      * @return     boolean True if $col has been modified.
      */
     public function isColumnModified($col)
@@ -354,7 +354,7 @@ abstract class BaseObject
             $parser = AbstractParser::getParser($parser);
         }
 
-        return $this->fromArray($parser->toArray($data), BasePeer::TYPE_PHPNAME);
+        return $this->fromArray($parser->toArray($data), TableMap::TYPE_PHPNAME);
     }
 
     /**
@@ -375,7 +375,7 @@ abstract class BaseObject
             $parser = AbstractParser::getParser($parser);
         }
 
-        return $parser->fromArray($this->toArray(BasePeer::TYPE_PHPNAME, $includeLazyLoadColumns, array(), true));
+        return $parser->fromArray($this->toArray(TableMap::TYPE_PHPNAME, $includeLazyLoadColumns, array(), true));
     }
 
     /**

@@ -10,25 +10,24 @@
 
 namespace Propel\Tests\Runtime\collection;
 
-use Propel\Tests\Helpers\Bookstore\BookstoreEmptyTestBase;
-use Propel\Tests\Helpers\Bookstore\BookstoreDataPopulator;
-
+use Propel\Runtime\Collection\ObjectCollection;
+use Propel\Runtime\Propel;
+use Propel\Runtime\Query\Criteria;
+use Propel\Runtime\Query\PropelQuery;
 use Propel\Tests\Bookstore\Author;
 use Propel\Tests\Bookstore\AuthorPeer;
 use Propel\Tests\Bookstore\AuthorQuery;
+use Propel\Tests\Bookstore\Map\AuthorTableMap;
 use Propel\Tests\Bookstore\BookPeer;
 use Propel\Tests\Bookstore\BookQuery;
-
-use Propel\Runtime\Propel;
-use Propel\Runtime\Collection\ObjectCollection;
-use Propel\Runtime\Query\Criteria;
-use Propel\Runtime\Query\PropelQuery;
+use Propel\Tests\Bookstore\Map\BookTableMap;
+use Propel\Tests\Helpers\Bookstore\BookstoreEmptyTestBase;
+use Propel\Tests\Helpers\Bookstore\BookstoreDataPopulator;
 
 /**
  * Test class for ObjectCollection.
  *
  * @author     Francois Zaninotto
- * @version    $Id$
  */
 class ObjectCollectionWithFixturesTest extends BookstoreEmptyTestBase
 {
@@ -254,7 +253,7 @@ class ObjectCollectionWithFixturesTest extends BookstoreEmptyTestBase
 
     public function testPopulateRelationManyToOne()
     {
-        $con = Propel::getServiceContainer()->getReadConnection(BookPeer::DATABASE_NAME);
+        $con = Propel::getServiceContainer()->getReadConnection(BookTableMap::DATABASE_NAME);
         AuthorPeer::clearInstancePool();
         BookPeer::clearInstancePool();
         $books = BookQuery::create()->find($con);

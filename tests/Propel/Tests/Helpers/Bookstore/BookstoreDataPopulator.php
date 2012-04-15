@@ -12,12 +12,10 @@ namespace Propel\Tests\Helpers\Bookstore;
 
 use Propel\Runtime\Propel;
 use Propel\Runtime\Query\Criteria;
-
 use Propel\Tests\Bookstore\AcctAccessRole;
 use Propel\Tests\Bookstore\Author;
 use Propel\Tests\Bookstore\AuthorPeer;
 use Propel\Tests\Bookstore\Book;
-use Propel\Tests\Bookstore\BookPeer;
 use Propel\Tests\Bookstore\BookClubList;
 use Propel\Tests\Bookstore\BookClubListPeer;
 use Propel\Tests\Bookstore\BookListRel;
@@ -33,6 +31,7 @@ use Propel\Tests\Bookstore\BookstoreEmployee;
 use Propel\Tests\Bookstore\BookstoreEmployeePeer;
 use Propel\Tests\Bookstore\BookstoreEmployeeAccount;
 use Propel\Tests\Bookstore\BookstoreEmployeeAccountPeer;
+use Propel\Tests\Bookstore\Map\BookTableMap;
 use Propel\Tests\Bookstore\Media;
 use Propel\Tests\Bookstore\MediaPeer;
 use Propel\Tests\Bookstore\Publisher;
@@ -42,7 +41,7 @@ use Propel\Tests\Bookstore\ReaderFavoritePeer;
 use Propel\Tests\Bookstore\Review;
 use Propel\Tests\Bookstore\ReviewPeer;
 
-define('_LOB_SAMPLE_FILE_PATH', __DIR__ . '/../../../../Fixtures/etc/lob');
+define('LOB_SAMPLE_FILE_PATH', __DIR__ . '/../../../../Fixtures/etc/lob');
 
 /**
  * Populates data needed by the bookstore unit tests.
@@ -55,11 +54,10 @@ define('_LOB_SAMPLE_FILE_PATH', __DIR__ . '/../../../../Fixtures/etc/lob');
  */
 class BookstoreDataPopulator
 {
-
     static public function populate($con = null)
     {
         if($con === null) {
-            $con = Propel::getServiceContainer()->getConnection(BookPeer::DATABASE_NAME);
+            $con = Propel::getServiceContainer()->getConnection(BookTableMap::DATABASE_NAME);
         }
         $con->beginTransaction();
 
@@ -160,8 +158,8 @@ class BookstoreDataPopulator
         $r2->save($con);
         $r2_id = $r2->getId();
 
-        $blob_path = _LOB_SAMPLE_FILE_PATH . '/tin_drum.gif';
-        $clob_path =  _LOB_SAMPLE_FILE_PATH . '/tin_drum.txt';
+        $blob_path = LOB_SAMPLE_FILE_PATH . '/tin_drum.gif';
+        $clob_path = LOB_SAMPLE_FILE_PATH . '/tin_drum.txt';
 
         $m1 = new Media();
         $m1->setBook($td);
@@ -236,11 +234,11 @@ class BookstoreDataPopulator
     static public function populateOpinionFavorite($con = null)
     {
         if($con === null) {
-            $con = Propel::getServiceContainer()->getConnection(BookPeer::DATABASE_NAME);
+            $con = Propel::getServiceContainer()->getConnection(BookTableMap::DATABASE_NAME);
         }
         $con->beginTransaction();
 
-        $book1 = BookPeer::doSelectOne(new Criteria(), $con);
+        $book1 = BookTableMap::doSelectOne(new Criteria(), $con);
         $reader1 = new BookReader();
         $reader1->save($con);
 
@@ -309,7 +307,7 @@ class BookstoreDataPopulator
         }
         // delete records from the database
         if ($con === null) {
-            $con = Propel::getServiceContainer()->getConnection(BookPeer::DATABASE_NAME);
+            $con = Propel::getServiceContainer()->getConnection(BookTableMap::DATABASE_NAME);
         }
         $con->beginTransaction();
         foreach ($peerClasses as $peerClass) {

@@ -10,14 +10,13 @@
 
 namespace Propel\Tests\Runtime\Util;
 
-use Propel\Tests\Helpers\Bookstore\BookstoreEmptyTestBase;
-use Propel\Tests\Bookstore\Book;
-use Propel\Tests\Bookstore\BookQuery;
-
 use Propel\Runtime\Collection\ArrayCollection;
 use Propel\Runtime\Collection\ObjectCollection;
 use Propel\Runtime\Util\PropelModelPager;
 use Propel\Runtime\Query\ModelCriteria;
+use Propel\Tests\Bookstore\Book;
+use Propel\Tests\Bookstore\BookQuery;
+use Propel\Tests\Helpers\Bookstore\BookstoreEmptyTestBase;
 
 /**
  * Test the utility class PropelModelPager
