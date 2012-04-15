@@ -556,7 +556,7 @@ class ModelCriteria extends Criteria
 
         if ('*' === $columnArray) {
             $columnArray = array();
-            foreach (call_user_func(array($this->getTableMap(), 'getFieldNames'), BasePeer::TYPE_PHPNAME) as $column) {
+            foreach (call_user_func(array($this->getTableMap(), 'getFieldNames'), TableMap::TYPE_PHPNAME) as $column) {
                 $columnArray []= $this->modelName . '.' . $column;
             }
         }

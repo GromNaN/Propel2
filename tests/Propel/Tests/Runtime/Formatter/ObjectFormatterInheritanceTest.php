@@ -12,22 +12,20 @@ namespace Propel\Tests\Runtime\Formatter;
 
 use Propel\Tests\Helpers\Bookstore\BookstoreEmptyTestBase;
 
+use Propel\Runtime\Formatter\ObjectFormatter;
+use Propel\Runtime\Propel;
+use Propel\Runtime\Query\ModelCriteria;
 use Propel\Tests\Bookstore\Book;
-use Propel\Tests\Bookstore\BookPeer;
 use Propel\Tests\Bookstore\BookstoreEmployee;
 use Propel\Tests\Bookstore\BookstoreEmployeePeer;
 use Propel\Tests\Bookstore\BookstoreCashier;
 use Propel\Tests\Bookstore\BookstoreManager;
-
-use Propel\Runtime\Propel;
-use Propel\Runtime\Formatter\ObjectFormatter;
-use Propel\Runtime\Query\ModelCriteria;
+use Propel\Tests\Bookstore\Map\BookTableMap;
 
 /**
  * Test class for ObjectFormatter.
  *
  * @author     Francois Zaninotto
- * @version    $Id: ObjectFormatterTest.php 1374 2009-12-26 23:21:37Z francois $
  */
 class ObjectFormatterInheritanceTest extends BookstoreEmptyTestBase
 {
@@ -47,7 +45,7 @@ class ObjectFormatterInheritanceTest extends BookstoreEmptyTestBase
 
     public function testFormat()
     {
-        $con = Propel::getServiceContainer()->getConnection(BookPeer::DATABASE_NAME);
+        $con = Propel::getServiceContainer()->getConnection(BookTableMap::DATABASE_NAME);
         BookstoreEmployeePeer::clearInstancePool();
 
         $stmt = $con->query('SELECT * FROM bookstore_employee');

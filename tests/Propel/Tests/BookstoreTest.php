@@ -11,9 +11,6 @@
 namespace Propel\Tests;
 
 use Propel\Runtime\Query\Criteria;
-
-use Propel\Tests\Helpers\Bookstore\BookstoreEmptyTestBase;
-
 use Propel\Tests\Bookstore\Author;
 use Propel\Tests\Bookstore\AuthorPeer;
 use Propel\Tests\Bookstore\AuthorQuery;
@@ -38,6 +35,7 @@ use Propel\Tests\Bookstore\Review;
 use Propel\Tests\Bookstore\ReviewPeer;
 use Propel\Tests\Bookstore\ReviewQuery;
 use Propel\Tests\Bookstore\Map\ReviewTableMap;
+use Propel\Tests\Helpers\Bookstore\BookstoreEmptyTestBase;
 
 use \DateTime;
 
@@ -848,8 +846,8 @@ class BookstoreTest extends BookstoreEmptyTestBase
         // The only way for cascading to work currently
         // is to specify the author_id and publisher_id (i.e. the fkeys
         // have to be in the criteria).
-        $c->add(AuthorPeer::ID, $hp->getAuthor()->getId());
-        $c->add(PublisherPeer::ID, $hp->getPublisher()->getId());
+        $c->add(AuthorTableMap::ID, $hp->getAuthor()->getId());
+        $c->add(PublisherTableMap::ID, $hp->getPublisher()->getId());
         $c->setSingleRecord(true);
         BookPeer::doDelete($c);
 

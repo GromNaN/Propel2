@@ -10,17 +10,15 @@
 
 namespace Propel\Tests\Runtime\Query;
 
-use Propel\Tests\Bookstore\AuthorPeer;
+use Propel\Runtime\Query\ModelCriteria;
+use Propel\Tests\Bookstore\Map\AuthorTableMap;
 use Propel\Tests\Helpers\Bookstore\BookstoreTestBase;
 use Propel\Tests\Helpers\Bookstore\BookstoreDataPopulator;
-
-use Propel\Runtime\Query\ModelCriteria;
 
 /**
  * Test class for ModelCriteria select() method.
  *
  * @author     Francois Zaninotto
- * @version    $Id: ModelCriteriaTest.php 1842 2010-07-22 22:39:40Z KRavEN $
  */
 class ModelCriteriaSelectTest extends BookstoreTestBase
 {
@@ -126,7 +124,7 @@ class ModelCriteriaSelectTest extends BookstoreTestBase
         $this->assertEquals($expectedSQL, $this->con->getLastExecutedQuery(), 'findOne() called after select(string) allows for where() statements');
 
         $c = new ModelCriteria('bookstore', 'Propel\Tests\Bookstore\Author');
-        $c->select(AuthorPeer::FIRST_NAME);
+        $c->select(AuthorTableMap::FIRST_NAME);
         $author = $c->find($this->con);
         $expectedSQL = "SELECT author.FIRST_NAME AS \"author.FIRST_NAME\" FROM `author`";
         $this->assertEquals($expectedSQL, $this->con->getLastExecutedQuery(), 'select(string) accepts model Peer Constants');

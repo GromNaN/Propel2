@@ -100,7 +100,7 @@ EOF;
 EOF;
     $appData = $xmlToAppData->parseString($schema);
     $column = $appData->getDatabase('test')->getTable('table1')->getColumn('title');
-    $this->assertEquals('Table1Peer::TITLE', $column->getConstantName(), 'getConstantName() returns the complete constant name by default');
+    $this->assertEquals('Table1TableMap::TITLE', $column->getConstantName(), 'getConstantName() returns the complete constant name by default');
     }
 
     public function testIsLocalColumnsRequired()

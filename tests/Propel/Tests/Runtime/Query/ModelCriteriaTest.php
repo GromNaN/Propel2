@@ -10,9 +10,22 @@
 
 namespace Propel\Tests\Runtime\Query;
 
-use Propel\Tests\Helpers\Bookstore\BookstoreTestBase;
-use Propel\Tests\Helpers\Bookstore\BookstoreDataPopulator;
-
+use Propel\Runtime\Collection\Collection;
+use Propel\Runtime\Collection\ObjectCollection;
+use Propel\Runtime\Exception\InvalidArgumentException;
+use Propel\Runtime\Exception\LogicException;
+use Propel\Runtime\Exception\PropelException;
+use Propel\Runtime\Exception\UnexpectedValueException;
+use Propel\Runtime\Formatter\AbstractFormatter;
+use Propel\Runtime\Formatter\StatementFormatter;
+use Propel\Runtime\Propel;
+use Propel\Runtime\Query\Criteria;
+use Propel\Runtime\Query\Exception\UnknownColumnException;
+use Propel\Runtime\Query\Exception\UnknownModelException;
+use Propel\Runtime\Query\Exception\UnknownRelationException;
+use Propel\Runtime\Query\ModelCriteria;
+use Propel\Runtime\Util\BasePeer;
+use Propel\Runtime\Util\PropelModelPager;
 use Propel\Tests\Bookstore\Author;
 use Propel\Tests\Bookstore\AuthorPeer;
 use Propel\Tests\Bookstore\AuthorQuery;
@@ -23,25 +36,12 @@ use Propel\Tests\Bookstore\Book2;
 use Propel\Tests\Bookstore\Book2Query;
 use Propel\Tests\Bookstore\BookstoreEmployeePeer;
 use Propel\Tests\Bookstore\Publisher;
-use Propel\Tests\Bookstore\PublisherPeer;
-use Propel\Tests\Bookstore\ReviewPeer;
-
-use Propel\Runtime\Propel;
-use Propel\Runtime\Collection\Collection;
-use Propel\Runtime\Collection\ObjectCollection;
-use Propel\Runtime\Exception\InvalidArgumentException;
-use Propel\Runtime\Exception\LogicException;
-use Propel\Runtime\Exception\PropelException;
-use Propel\Runtime\Exception\UnexpectedValueException;
-use Propel\Runtime\Formatter\AbstractFormatter;
-use Propel\Runtime\Formatter\StatementFormatter;
-use Propel\Runtime\Util\BasePeer;
-use Propel\Runtime\Util\PropelModelPager;
-use Propel\Runtime\Query\Criteria;
-use Propel\Runtime\Query\Exception\UnknownColumnException;
-use Propel\Runtime\Query\Exception\UnknownModelException;
-use Propel\Runtime\Query\Exception\UnknownRelationException;
-use Propel\Runtime\Query\ModelCriteria;
+use Propel\Tests\Bookstore\Map\BookTableMap;
+use Propel\Tests\Bookstore\Map\AuthorTableMap;
+use Propel\Tests\Bookstore\Map\PublisherTableMap;
+use Propel\Tests\Bookstore\Map\ReviewTableMap;
+use Propel\Tests\Helpers\Bookstore\BookstoreTestBase;
+use Propel\Tests\Helpers\Bookstore\BookstoreDataPopulator;
 
 use \PDO;
 
@@ -49,7 +49,6 @@ use \PDO;
  * Test class for ModelCriteria.
  *
  * @author     Francois Zaninotto
- * @version    $Id$
  */
 class ModelCriteriaTest extends BookstoreTestBase
 {
@@ -83,10 +82,10 @@ class ModelCriteriaTest extends BookstoreTestBase
     public function testGetModelPeerName()
     {
         $c = new ModelCriteria('bookstore', 'Propel\Tests\Bookstore\Book');
-        $this->assertEquals('\Propel\Tests\Bookstore\BookPeer', $c->getModelPeerName(), 'getModelPeerName() returns the name of the Peer class associated to the model class');
+        $this->assertEquals('\Propel\Tests\Bookstore\BookTableMap', $c->getModelPeerName(), 'getModelPeerName() returns the name of the Peer class associated to the model class');
 
         $c = new ModelCriteria('bookstore', '\Propel\Tests\Bookstore\Book');
-        $this->assertEquals('\Propel\Tests\Bookstore\BookPeer', $c->getModelPeerName(), 'getModelPeerName() returns the name of the Peer class associated to the model class');
+        $this->assertEquals('\Propel\Tests\Bookstore\BookTableMap', $c->getModelPeerName(), 'getModelPeerName() returns the name of the Peer class associated to the model class');
     }
 
     public function testFormatter()
@@ -156,7 +155,7 @@ class ModelCriteriaTest extends BookstoreTestBase
     public function testReplaceNames($origClause, $columnPhpName = false, $modifiedClause)
     {
         $c = new TestableModelCriteria('bookstore', 'Propel\Tests\Bookstore\Book');
-        $this->doTestReplaceNames($c, BookPeer::getTableMap(), $origClause, $columnPhpName = false, $modifiedClause);
+        $this->doTestReplaceNames($c, BookTableMap::getInstance(), $origClause, $columnPhpName = false, $modifiedClause);
     }
 
     public function doTestReplaceNames($c, $tableMap, $origClause, $columnPhpName = false, $modifiedClause)
@@ -188,7 +187,7 @@ class ModelCriteriaTest extends BookstoreTestBase
         $c->replaceNames($origClause);
         $foundColumns = $c->replacedColumns;
         foreach ($foundColumns as $column) {
-            $expectedColumn = BookPeer::getTableMap()->getColumnByPhpName(array_shift($expectedColumns));
+            $expectedColumn = BookTableMap::getInstance()->getColumnByPhpName(array_shift($expectedColumns));
             $this->assertEquals($expectedColumn, $column);
         }
         $this->assertEquals($modifiedClause, $origClause);
@@ -514,7 +513,7 @@ class ModelCriteriaTest extends BookstoreTestBase
     {
         $c = new ModelCriteria('bookstore', 'Propel\Tests\Bookstore\Book');
         $c->where('Propel\Tests\Bookstore\Book.Title = ?', 'foo');
-        $c->add(BookPeer::ID, array(1, 2), Criteria::IN);
+        $c->add(BookTableMap::ID, array(1, 2), Criteria::IN);
 
         if (in_array($this->getDriver(), array('mysql'))) {
             $sql = 'SELECT  FROM `book` WHERE book.TITLE = :p1 AND book.ID IN (:p2,:p3)';
@@ -681,7 +680,7 @@ class ModelCriteriaTest extends BookstoreTestBase
     public function testOrderByAlias()
     {
         $c = new ModelCriteria('bookstore', 'Propel\Tests\Bookstore\Book');
-        $c->addAsColumn('t', BookPeer::TITLE);
+        $c->addAsColumn('t', BookTableMap::TITLE);
         $c->orderBy('t');
 
         $sql = 'SELECT book.TITLE AS t FROM  ORDER BY t ASC';
@@ -720,7 +719,7 @@ class ModelCriteriaTest extends BookstoreTestBase
     public function testGroupByAlias()
     {
         $c = new ModelCriteria('bookstore', 'Propel\Tests\Bookstore\Book');
-        $c->addAsColumn('t', BookPeer::TITLE);
+        $c->addAsColumn('t', BookTableMap::TITLE);
         $c->groupBy('t');
 
         $sql = 'SELECT book.TITLE AS t FROM  GROUP BY t';
@@ -824,8 +823,8 @@ class ModelCriteriaTest extends BookstoreTestBase
     public function testAddJoin()
     {
         $c = new ModelCriteria('bookstore', 'Propel\Tests\Bookstore\Book');
-        $c->addJoin(BookPeer::AUTHOR_ID, AuthorPeer::ID);
-        $c->addJoin(BookPeer::PUBLISHER_ID, PublisherPeer::ID);
+        $c->addJoin(BookTableMap::AUTHOR_ID, AuthorTableMap::ID);
+        $c->addJoin(BookTableMap::PUBLISHER_ID, PublisherTableMap::ID);
         $sql = 'SELECT  FROM `book` INNER JOIN `author` ON (book.AUTHOR_ID=author.ID) INNER JOIN `publisher` ON (book.PUBLISHER_ID=publisher.ID)';
         $params = array();
         $this->assertCriteriaTranslation($c, $sql, $params, 'addJoin() works the same as in Criteria');
@@ -868,7 +867,7 @@ class ModelCriteriaTest extends BookstoreTestBase
 
     public function testJoinQuery()
     {
-        $con = Propel::getServiceContainer()->getConnection(BookPeer::DATABASE_NAME);
+        $con = Propel::getServiceContainer()->getConnection(BookTableMap::DATABASE_NAME);
         BookstoreDataPopulator::depopulate($con);
         BookstoreDataPopulator::populate($con);
 
@@ -998,7 +997,7 @@ class ModelCriteriaTest extends BookstoreTestBase
         $params = array();
         $this->assertCriteriaTranslation($c, $sql, $params, 'join() supports relation alias on main alias');
 
-        $con = Propel::getServiceContainer()->getConnection(BookPeer::DATABASE_NAME);
+        $con = Propel::getServiceContainer()->getConnection(BookTableMap::DATABASE_NAME);
         $c = new ModelCriteria('bookstore', 'Propel\Tests\Bookstore\Book', 'b');
         $c->join('b.Author a');
         $c->where('a.FirstName = ?', 'Leo');
@@ -1051,7 +1050,7 @@ class ModelCriteriaTest extends BookstoreTestBase
 
     public function testJoinAliasQuery()
     {
-        $con = Propel::getServiceContainer()->getConnection(BookPeer::DATABASE_NAME);
+        $con = Propel::getServiceContainer()->getConnection(BookTableMap::DATABASE_NAME);
         $c = new ModelCriteria('bookstore', 'Propel\Tests\Bookstore\Book', 'b');
         $c->join('b.Author a');
         $c->where('a.FirstName = ?', 'Leo');
@@ -1070,7 +1069,7 @@ class ModelCriteriaTest extends BookstoreTestBase
 
     public function testAddJoinConditionSimple()
     {
-        $con = Propel::getServiceContainer()->getConnection(BookPeer::DATABASE_NAME);
+        $con = Propel::getServiceContainer()->getConnection(BookTableMap::DATABASE_NAME);
         $c = new ModelCriteria('bookstore', 'Propel\Tests\Bookstore\Book');
         $c->join('Propel\Tests\Bookstore\Book.Author', Criteria::INNER_JOIN);
         $c->addJoinCondition('Author', 'Propel\Tests\Bookstore\Book.Title IS NOT NULL');
@@ -1081,7 +1080,7 @@ class ModelCriteriaTest extends BookstoreTestBase
 
     public function testAddJoinConditionBinding()
     {
-        $con = Propel::getServiceContainer()->getConnection(BookPeer::DATABASE_NAME);
+        $con = Propel::getServiceContainer()->getConnection(BookTableMap::DATABASE_NAME);
         $c = new ModelCriteria('bookstore', 'Propel\Tests\Bookstore\Book');
         $c->join('Propel\Tests\Bookstore\Book.Author', Criteria::INNER_JOIN);
         $c->addJoinCondition('Author', 'Propel\Tests\Bookstore\Book.Title = ?', 'foo');
@@ -1092,7 +1091,7 @@ class ModelCriteriaTest extends BookstoreTestBase
 
     public function testAddJoinConditionSeveral()
     {
-        $con = Propel::getServiceContainer()->getConnection(BookPeer::DATABASE_NAME);
+        $con = Propel::getServiceContainer()->getConnection(BookTableMap::DATABASE_NAME);
         $c = new ModelCriteria('bookstore', 'Propel\Tests\Bookstore\Book');
         $c->join('Propel\Tests\Bookstore\Book.Author', Criteria::INNER_JOIN);
         $c->addJoinCondition('Author', 'Propel\Tests\Bookstore\Book.Title = ?', 'foo');
@@ -1104,7 +1103,7 @@ class ModelCriteriaTest extends BookstoreTestBase
 
     public function testAddJoinConditionBindingAndWhere()
     {
-        $con = Propel::getServiceContainer()->getConnection(BookPeer::DATABASE_NAME);
+        $con = Propel::getServiceContainer()->getConnection(BookTableMap::DATABASE_NAME);
         $c = new ModelCriteria('bookstore', 'Propel\Tests\Bookstore\Book');
         $c->where('Propel\Tests\Bookstore\Book.Title LIKE ?', 'foo%');
         $c->join('Propel\Tests\Bookstore\Book.Author', Criteria::INNER_JOIN);
@@ -1116,7 +1115,7 @@ class ModelCriteriaTest extends BookstoreTestBase
 
     public function testAddJoinConditionAlias()
     {
-        $con = Propel::getServiceContainer()->getConnection(BookPeer::DATABASE_NAME);
+        $con = Propel::getServiceContainer()->getConnection(BookTableMap::DATABASE_NAME);
         $c = new ModelCriteria('bookstore', 'Propel\Tests\Bookstore\Book');
         $c->join('Propel\Tests\Bookstore\Book.Author a', Criteria::INNER_JOIN);
         $c->addJoinCondition('a', 'Book.Title IS NOT NULL');
@@ -1127,7 +1126,7 @@ class ModelCriteriaTest extends BookstoreTestBase
 
     public function testAddJoinConditionOperator()
     {
-        $con = Propel::getServiceContainer()->getConnection(BookPeer::DATABASE_NAME);
+        $con = Propel::getServiceContainer()->getConnection(BookTableMap::DATABASE_NAME);
         $c = new ModelCriteria('bookstore', 'Propel\Tests\Bookstore\Book');
         $c->join('Propel\Tests\Bookstore\Book.Author', Criteria::INNER_JOIN);
         $c->addJoinCondition('Author', 'Propel\Tests\Bookstore\Book.Title IS NOT NULL', null, Criteria::LOGICAL_OR);
@@ -1138,10 +1137,10 @@ class ModelCriteriaTest extends BookstoreTestBase
 
     public function testSetJoinConditionCriterion()
     {
-        $con = Propel::getServiceContainer()->getConnection(BookPeer::DATABASE_NAME);
+        $con = Propel::getServiceContainer()->getConnection(BookTableMap::DATABASE_NAME);
         $c = new ModelCriteria('bookstore', 'Propel\Tests\Bookstore\Book');
         $c->join('Propel\Tests\Bookstore\Book.Author', Criteria::INNER_JOIN);
-        $criterion = $c->getNewCriterion(BookPeer::TITLE, BookPeer::TITLE . ' = ' . AuthorPeer::FIRST_NAME, Criteria::CUSTOM);
+        $criterion = $c->getNewCriterion(BookTableMap::TITLE, BookTableMap::TITLE . ' = ' . AuthorTableMap::FIRST_NAME, Criteria::CUSTOM);
         $c->setJoinCondition('Author', $criterion);
         $books = BookPeer::doSelect($c, $con);
         $expectedSQL = "SELECT book.ID, book.TITLE, book.ISBN, book.PRICE, book.PUBLISHER_ID, book.AUTHOR_ID FROM `book` INNER JOIN `author` ON book.TITLE = author.FIRST_NAME";
@@ -1150,7 +1149,7 @@ class ModelCriteriaTest extends BookstoreTestBase
 
     public function testSetJoinConditionNamedCondition()
     {
-        $con = Propel::getServiceContainer()->getConnection(BookPeer::DATABASE_NAME);
+        $con = Propel::getServiceContainer()->getConnection(BookTableMap::DATABASE_NAME);
         $c = new ModelCriteria('bookstore', 'Propel\Tests\Bookstore\Book');
         $c->join('Propel\Tests\Bookstore\Book.Author', Criteria::INNER_JOIN);
         $c->condition('cond1', 'Propel\Tests\Bookstore\Book.Title = Author.FirstName');
@@ -1214,17 +1213,17 @@ class ModelCriteriaTest extends BookstoreTestBase
         $c->join('Propel\Tests\Bookstore\Book.Author');
         $c->with('Author');
         $expectedColumns = array(
-            BookPeer::ID,
-            BookPeer::TITLE,
-            BookPeer::ISBN,
-            BookPeer::PRICE,
-            BookPeer::PUBLISHER_ID,
-            BookPeer::AUTHOR_ID,
-            AuthorPeer::ID,
-            AuthorPeer::FIRST_NAME,
-            AuthorPeer::LAST_NAME,
-            AuthorPeer::EMAIL,
-            AuthorPeer::AGE
+            BookTableMap::ID,
+            BookTableMap::TITLE,
+            BookTableMap::ISBN,
+            BookTableMap::PRICE,
+            BookTableMap::PUBLISHER_ID,
+            BookTableMap::AUTHOR_ID,
+            AuthorTableMap::ID,
+            AuthorTableMap::FIRST_NAME,
+            AuthorTableMap::LAST_NAME,
+            AuthorTableMap::EMAIL,
+            AuthorTableMap::AGE
         );
         $this->assertEquals($expectedColumns, $c->getSelectColumns(), 'with() adds the columns of the related table');
     }
@@ -1236,12 +1235,12 @@ class ModelCriteriaTest extends BookstoreTestBase
         $c->join('Propel\Tests\Bookstore\Book.Author a');
         $c->with('a');
         $expectedColumns = array(
-            BookPeer::ID,
-            BookPeer::TITLE,
-            BookPeer::ISBN,
-            BookPeer::PRICE,
-            BookPeer::PUBLISHER_ID,
-            BookPeer::AUTHOR_ID,
+            BookTableMap::ID,
+            BookTableMap::TITLE,
+            BookTableMap::ISBN,
+            BookTableMap::PRICE,
+            BookTableMap::PUBLISHER_ID,
+            BookTableMap::AUTHOR_ID,
             'a.ID',
             'a.FIRST_NAME',
             'a.LAST_NAME',
@@ -1257,17 +1256,17 @@ class ModelCriteriaTest extends BookstoreTestBase
         $c->join('Propel\Tests\Bookstore\Book.Author');
         $c->with('Author');
         $expectedColumns = array(
-            BookPeer::ID,
-            BookPeer::TITLE,
-            BookPeer::ISBN,
-            BookPeer::PRICE,
-            BookPeer::PUBLISHER_ID,
-            BookPeer::AUTHOR_ID,
-            AuthorPeer::ID,
-            AuthorPeer::FIRST_NAME,
-            AuthorPeer::LAST_NAME,
-            AuthorPeer::EMAIL,
-            AuthorPeer::AGE
+            BookTableMap::ID,
+            BookTableMap::TITLE,
+            BookTableMap::ISBN,
+            BookTableMap::PRICE,
+            BookTableMap::PUBLISHER_ID,
+            BookTableMap::AUTHOR_ID,
+            AuthorTableMap::ID,
+            AuthorTableMap::FIRST_NAME,
+            AuthorTableMap::LAST_NAME,
+            AuthorTableMap::EMAIL,
+            AuthorTableMap::AGE
         );
         $this->assertEquals($expectedColumns, $c->getSelectColumns(), 'with() adds the columns of the main table if required');
     }
@@ -1301,17 +1300,17 @@ class ModelCriteriaTest extends BookstoreTestBase
         $c->leftJoin('Propel\Tests\Bookstore\Author.Book');
         $c->with('Book');
         $expectedColumns = array(
-            AuthorPeer::ID,
-            AuthorPeer::FIRST_NAME,
-            AuthorPeer::LAST_NAME,
-            AuthorPeer::EMAIL,
-            AuthorPeer::AGE,
-            BookPeer::ID,
-            BookPeer::TITLE,
-            BookPeer::ISBN,
-            BookPeer::PRICE,
-            BookPeer::PUBLISHER_ID,
-            BookPeer::AUTHOR_ID,
+            AuthorTableMap::ID,
+            AuthorTableMap::FIRST_NAME,
+            AuthorTableMap::LAST_NAME,
+            AuthorTableMap::EMAIL,
+            AuthorTableMap::AGE,
+            BookTableMap::ID,
+            BookTableMap::TITLE,
+            BookTableMap::ISBN,
+            BookTableMap::PRICE,
+            BookTableMap::PUBLISHER_ID,
+            BookTableMap::AUTHOR_ID,
         );
         $this->assertEquals($expectedColumns, $c->getSelectColumns(), 'with() adds the columns of the related table even in a one-to-many relationship');
     }
@@ -1321,17 +1320,17 @@ class ModelCriteriaTest extends BookstoreTestBase
         $c = new TestableModelCriteria('bookstore', 'Propel\Tests\Bookstore\Book');
         $c->joinWith('Propel\Tests\Bookstore\Book.Author');
         $expectedColumns = array(
-            BookPeer::ID,
-            BookPeer::TITLE,
-            BookPeer::ISBN,
-            BookPeer::PRICE,
-            BookPeer::PUBLISHER_ID,
-            BookPeer::AUTHOR_ID,
-            AuthorPeer::ID,
-            AuthorPeer::FIRST_NAME,
-            AuthorPeer::LAST_NAME,
-            AuthorPeer::EMAIL,
-            AuthorPeer::AGE
+            BookTableMap::ID,
+            BookTableMap::TITLE,
+            BookTableMap::ISBN,
+            BookTableMap::PRICE,
+            BookTableMap::PUBLISHER_ID,
+            BookTableMap::AUTHOR_ID,
+            AuthorTableMap::ID,
+            AuthorTableMap::FIRST_NAME,
+            AuthorTableMap::LAST_NAME,
+            AuthorTableMap::EMAIL,
+            AuthorTableMap::AGE
         );
         $this->assertEquals($expectedColumns, $c->getSelectColumns(), 'joinWith() adds the join');
         $joins = $c->getJoins();
@@ -1353,12 +1352,12 @@ class ModelCriteriaTest extends BookstoreTestBase
         $c = new TestableModelCriteria('bookstore', 'Propel\Tests\Bookstore\Book');
         $c->joinWith('Propel\Tests\Bookstore\Book.Author a');
         $expectedColumns = array(
-            BookPeer::ID,
-            BookPeer::TITLE,
-            BookPeer::ISBN,
-            BookPeer::PRICE,
-            BookPeer::PUBLISHER_ID,
-            BookPeer::AUTHOR_ID,
+            BookTableMap::ID,
+            BookTableMap::TITLE,
+            BookTableMap::ISBN,
+            BookTableMap::PRICE,
+            BookTableMap::PUBLISHER_ID,
+            BookTableMap::AUTHOR_ID,
             'a.ID',
             'a.FIRST_NAME',
             'a.LAST_NAME',
@@ -1375,25 +1374,25 @@ class ModelCriteriaTest extends BookstoreTestBase
         $c->joinWith('Propel\Tests\Bookstore\Book.Author');
         $c->joinWith('Book.Publisher');
         $expectedColumns = array(
-            ReviewPeer::ID,
-            ReviewPeer::REVIEWED_BY,
-            ReviewPeer::REVIEW_DATE,
-            ReviewPeer::RECOMMENDED,
-            ReviewPeer::STATUS,
-            ReviewPeer::BOOK_ID,
-            BookPeer::ID,
-            BookPeer::TITLE,
-            BookPeer::ISBN,
-            BookPeer::PRICE,
-            BookPeer::PUBLISHER_ID,
-            BookPeer::AUTHOR_ID,
-            AuthorPeer::ID,
-            AuthorPeer::FIRST_NAME,
-            AuthorPeer::LAST_NAME,
-            AuthorPeer::EMAIL,
-            AuthorPeer::AGE,
-            PublisherPeer::ID,
-            PublisherPeer::NAME
+            ReviewTableMap::ID,
+            ReviewTableMap::REVIEWED_BY,
+            ReviewTableMap::REVIEW_DATE,
+            ReviewTableMap::RECOMMENDED,
+            ReviewTableMap::STATUS,
+            ReviewTableMap::BOOK_ID,
+            BookTableMap::ID,
+            BookTableMap::TITLE,
+            BookTableMap::ISBN,
+            BookTableMap::PRICE,
+            BookTableMap::PUBLISHER_ID,
+            BookTableMap::AUTHOR_ID,
+            AuthorTableMap::ID,
+            AuthorTableMap::FIRST_NAME,
+            AuthorTableMap::LAST_NAME,
+            AuthorTableMap::EMAIL,
+            AuthorTableMap::AGE,
+            PublisherTableMap::ID,
+            PublisherTableMap::NAME
         );
         $this->assertEquals($expectedColumns, $c->getSelectColumns(), 'joinWith() adds the with');
         $joins = $c->getJoins();
@@ -1408,23 +1407,23 @@ class ModelCriteriaTest extends BookstoreTestBase
         $c->joinWith('Propel\Tests\Bookstore\Book.Author');
         $c->joinWith('Propel\Tests\Bookstore\Book.Review');
         $expectedColumns = array(
-            BookPeer::ID,
-            BookPeer::TITLE,
-            BookPeer::ISBN,
-            BookPeer::PRICE,
-            BookPeer::PUBLISHER_ID,
-            BookPeer::AUTHOR_ID,
-            AuthorPeer::ID,
-            AuthorPeer::FIRST_NAME,
-            AuthorPeer::LAST_NAME,
-            AuthorPeer::EMAIL,
-            AuthorPeer::AGE,
-            ReviewPeer::ID,
-            ReviewPeer::REVIEWED_BY,
-            ReviewPeer::REVIEW_DATE,
-            ReviewPeer::RECOMMENDED,
-            ReviewPeer::STATUS,
-            ReviewPeer::BOOK_ID,
+            BookTableMap::ID,
+            BookTableMap::TITLE,
+            BookTableMap::ISBN,
+            BookTableMap::PRICE,
+            BookTableMap::PUBLISHER_ID,
+            BookTableMap::AUTHOR_ID,
+            AuthorTableMap::ID,
+            AuthorTableMap::FIRST_NAME,
+            AuthorTableMap::LAST_NAME,
+            AuthorTableMap::EMAIL,
+            AuthorTableMap::AGE,
+            ReviewTableMap::ID,
+            ReviewTableMap::REVIEWED_BY,
+            ReviewTableMap::REVIEW_DATE,
+            ReviewTableMap::RECOMMENDED,
+            ReviewTableMap::STATUS,
+            ReviewTableMap::BOOK_ID,
         );
         $this->assertEquals($expectedColumns, $c->getSelectColumns(), 'joinWith() adds the with');
         $joins = $c->getJoins();
@@ -1601,7 +1600,7 @@ class ModelCriteriaTest extends BookstoreTestBase
 
     public function testFindAddsSelectColumns()
     {
-        $con = Propel::getServiceContainer()->getConnection(BookPeer::DATABASE_NAME);
+        $con = Propel::getServiceContainer()->getConnection(BookTableMap::DATABASE_NAME);
         $c = new ModelCriteria('bookstore', 'Propel\Tests\Bookstore\Book');
         $books = $c->find($con);
         $sql = "SELECT book.ID, book.TITLE, book.ISBN, book.PRICE, book.PUBLISHER_ID, book.AUTHOR_ID FROM `book`";
@@ -1610,7 +1609,7 @@ class ModelCriteriaTest extends BookstoreTestBase
 
     public function testFindTrueAliasAddsSelectColumns()
     {
-        $con = Propel::getServiceContainer()->getConnection(BookPeer::DATABASE_NAME);
+        $con = Propel::getServiceContainer()->getConnection(BookTableMap::DATABASE_NAME);
         $c = new ModelCriteria('bookstore', 'Propel\Tests\Bookstore\Book');
         $c->setModelAlias('b', true);
         $books = $c->find($con);
@@ -1690,7 +1689,7 @@ class ModelCriteriaTest extends BookstoreTestBase
 
     public function testFindOneOrCreateMakesOneQueryWhenRecordNotExists()
     {
-        $con = Propel::getServiceContainer()->getConnection(BookPeer::DATABASE_NAME);
+        $con = Propel::getServiceContainer()->getConnection(BookTableMap::DATABASE_NAME);
         BookQuery::create()->deleteAll($con);
         $count = $con->getQueryCount();
         $book = BookQuery::create('b')
@@ -1701,7 +1700,7 @@ class ModelCriteriaTest extends BookstoreTestBase
 
     public function testFindOneOrCreateMakesOneQueryWhenRecordExists()
     {
-        $con = Propel::getServiceContainer()->getConnection(BookPeer::DATABASE_NAME);
+        $con = Propel::getServiceContainer()->getConnection(BookTableMap::DATABASE_NAME);
         BookQuery::create()->deleteAll($con);
         $book = new Book();
         $book->setPrice(125);
@@ -1853,7 +1852,7 @@ class ModelCriteriaTest extends BookstoreTestBase
             $this->assertTrue(true, 'findBy() throws an exception when called on an unknown column name');
         }
 
-        $con = Propel::getServiceContainer()->getConnection(BookPeer::DATABASE_NAME);
+        $con = Propel::getServiceContainer()->getConnection(BookTableMap::DATABASE_NAME);
         $c = new ModelCriteria('bookstore', 'Propel\Tests\Bookstore\Book');
         $books = $c->findBy('Title', 'Don Juan', $con);
         $expectedSQL = "SELECT book.ID, book.TITLE, book.ISBN, book.PRICE, book.PUBLISHER_ID, book.AUTHOR_ID FROM `book` WHERE book.TITLE='Don Juan'";
@@ -1867,7 +1866,7 @@ class ModelCriteriaTest extends BookstoreTestBase
 
     public function testFindByArray()
     {
-        $con = Propel::getServiceContainer()->getConnection(BookPeer::DATABASE_NAME);
+        $con = Propel::getServiceContainer()->getConnection(BookTableMap::DATABASE_NAME);
         $c = new ModelCriteria('bookstore', 'Propel\Tests\Bookstore\Book');
         $books = $c->findByArray(array('Title' => 'Don Juan', 'ISBN' => 12345), $con);
         $expectedSQL = "SELECT book.ID, book.TITLE, book.ISBN, book.PRICE, book.PUBLISHER_ID, book.AUTHOR_ID FROM `book` WHERE book.TITLE='Don Juan' AND book.ISBN=12345";
@@ -1884,7 +1883,7 @@ class ModelCriteriaTest extends BookstoreTestBase
             $this->assertTrue(true, 'findOneBy() throws an exception when called on an unknown column name');
         }
 
-        $con = Propel::getServiceContainer()->getConnection(BookPeer::DATABASE_NAME);
+        $con = Propel::getServiceContainer()->getConnection(BookTableMap::DATABASE_NAME);
         $c = new ModelCriteria('bookstore', 'Propel\Tests\Bookstore\Book');
         $book = $c->findOneBy('Title', 'Don Juan', $con);
         $expectedSQL = "SELECT book.ID, book.TITLE, book.ISBN, book.PRICE, book.PUBLISHER_ID, book.AUTHOR_ID FROM `book` WHERE book.TITLE='Don Juan' LIMIT 1";
@@ -1895,7 +1894,7 @@ class ModelCriteriaTest extends BookstoreTestBase
 
     public function testFindOneByArray()
     {
-        $con = Propel::getServiceContainer()->getConnection(BookPeer::DATABASE_NAME);
+        $con = Propel::getServiceContainer()->getConnection(BookTableMap::DATABASE_NAME);
         $c = new ModelCriteria('bookstore', 'Propel\Tests\Bookstore\Book');
         $book = $c->findOneByArray(array('Title' => 'Don Juan', 'ISBN' => 12345), $con);
         $expectedSQL = "SELECT book.ID, book.TITLE, book.ISBN, book.PRICE, book.PUBLISHER_ID, book.AUTHOR_ID FROM `book` WHERE book.TITLE='Don Juan' AND book.ISBN=12345 LIMIT 1";
@@ -1963,7 +1962,7 @@ class ModelCriteriaTest extends BookstoreTestBase
 
     public function testDeleteUsingTableAlias()
     {
-        $con = Propel::getServiceContainer()->getConnection(BookPeer::DATABASE_NAME);
+        $con = Propel::getServiceContainer()->getConnection(BookTableMap::DATABASE_NAME);
 
         $c = new ModelCriteria('bookstore', 'Propel\Tests\Bookstore\Book');
         $c->setModelAlias('b', false);
@@ -2001,7 +2000,7 @@ class ModelCriteriaTest extends BookstoreTestBase
 
     public function testUpdate()
     {
-        $con = Propel::getServiceContainer()->getConnection(BookPeer::DATABASE_NAME);
+        $con = Propel::getServiceContainer()->getConnection(BookTableMap::DATABASE_NAME);
         BookstoreDataPopulator::depopulate($con);
         BookstoreDataPopulator::populate($con);
 
@@ -2034,7 +2033,7 @@ class ModelCriteriaTest extends BookstoreTestBase
 
     public function testUpdateUsingTableAlias()
     {
-        $con = Propel::getServiceContainer()->getConnection(BookPeer::DATABASE_NAME);
+        $con = Propel::getServiceContainer()->getConnection(BookTableMap::DATABASE_NAME);
 
         $c = new ModelCriteria('bookstore', 'Propel\Tests\Bookstore\Book');
         $c->setModelAlias('b', false);
@@ -2053,7 +2052,7 @@ class ModelCriteriaTest extends BookstoreTestBase
 
     public function testUpdateOneByOne()
     {
-        $con = Propel::getServiceContainer()->getConnection(BookPeer::DATABASE_NAME);
+        $con = Propel::getServiceContainer()->getConnection(BookTableMap::DATABASE_NAME);
         BookstoreDataPopulator::depopulate($con);
         BookstoreDataPopulator::populate($con);
 
@@ -2118,7 +2117,7 @@ class ModelCriteriaTest extends BookstoreTestBase
 
     public function testMagicJoin()
     {
-        $con = Propel::getServiceContainer()->getConnection(BookPeer::DATABASE_NAME);
+        $con = Propel::getServiceContainer()->getConnection(BookTableMap::DATABASE_NAME);
 
         $c = new ModelCriteria('bookstore', 'Propel\Tests\Bookstore\Book', 'b');
         $c->leftJoin('b.Author a');
@@ -2175,12 +2174,12 @@ class ModelCriteriaTest extends BookstoreTestBase
         $c = new TestableModelCriteria('bookstore', 'Propel\Tests\Bookstore\Book');
         $c->leftJoinWith('Propel\Tests\Bookstore\Book.Author a');
         $expectedColumns = array(
-            BookPeer::ID,
-            BookPeer::TITLE,
-            BookPeer::ISBN,
-            BookPeer::PRICE,
-            BookPeer::PUBLISHER_ID,
-            BookPeer::AUTHOR_ID,
+            BookTableMap::ID,
+            BookTableMap::TITLE,
+            BookTableMap::ISBN,
+            BookTableMap::PRICE,
+            BookTableMap::PUBLISHER_ID,
+            BookTableMap::AUTHOR_ID,
             'a.ID',
             'a.FIRST_NAME',
             'a.LAST_NAME',
@@ -2198,17 +2197,17 @@ class ModelCriteriaTest extends BookstoreTestBase
         $c = new TestableModelCriteria('bookstore', 'Propel\Tests\Bookstore\Book');
         $c->joinWithAuthor();
         $expectedColumns = array(
-            BookPeer::ID,
-            BookPeer::TITLE,
-            BookPeer::ISBN,
-            BookPeer::PRICE,
-            BookPeer::PUBLISHER_ID,
-            BookPeer::AUTHOR_ID,
-            AuthorPeer::ID,
-            AuthorPeer::FIRST_NAME,
-            AuthorPeer::LAST_NAME,
-            AuthorPeer::EMAIL,
-            AuthorPeer::AGE
+            BookTableMap::ID,
+            BookTableMap::TITLE,
+            BookTableMap::ISBN,
+            BookTableMap::PRICE,
+            BookTableMap::PUBLISHER_ID,
+            BookTableMap::AUTHOR_ID,
+            AuthorTableMap::ID,
+            AuthorTableMap::FIRST_NAME,
+            AuthorTableMap::LAST_NAME,
+            AuthorTableMap::EMAIL,
+            AuthorTableMap::AGE
         );
         $this->assertEquals($expectedColumns, $c->getSelectColumns(), 'joinWithXXX() adds the join with the XXX relation');
         $joins = $c->getJoins();
@@ -2221,17 +2220,17 @@ class ModelCriteriaTest extends BookstoreTestBase
         $c = new TestableModelCriteria('bookstore', 'Propel\Tests\Bookstore\Book');
         $c->leftJoinWithAuthor();
         $expectedColumns = array(
-            BookPeer::ID,
-            BookPeer::TITLE,
-            BookPeer::ISBN,
-            BookPeer::PRICE,
-            BookPeer::PUBLISHER_ID,
-            BookPeer::AUTHOR_ID,
-            AuthorPeer::ID,
-            AuthorPeer::FIRST_NAME,
-            AuthorPeer::LAST_NAME,
-            AuthorPeer::EMAIL,
-            AuthorPeer::AGE
+            BookTableMap::ID,
+            BookTableMap::TITLE,
+            BookTableMap::ISBN,
+            BookTableMap::PRICE,
+            BookTableMap::PUBLISHER_ID,
+            BookTableMap::AUTHOR_ID,
+            AuthorTableMap::ID,
+            AuthorTableMap::FIRST_NAME,
+            AuthorTableMap::LAST_NAME,
+            AuthorTableMap::EMAIL,
+            AuthorTableMap::AGE
         );
         $this->assertEquals($expectedColumns, $c->getSelectColumns(), 'leftJoinWithXXX() adds the join with the XXX relation');
         $joins = $c->getJoins();
@@ -2241,7 +2240,7 @@ class ModelCriteriaTest extends BookstoreTestBase
 
     public function testMagicFind()
     {
-        $con = Propel::getServiceContainer()->getConnection(BookPeer::DATABASE_NAME);
+        $con = Propel::getServiceContainer()->getConnection(BookTableMap::DATABASE_NAME);
 
         $c = new ModelCriteria('bookstore', 'Propel\Tests\Bookstore\Book');
         $books = $c->findByTitle('Don Juan');
@@ -2266,7 +2265,7 @@ class ModelCriteriaTest extends BookstoreTestBase
 
     public function testMagicFilterBy()
     {
-        $con = Propel::getServiceContainer()->getConnection(BookPeer::DATABASE_NAME);
+        $con = Propel::getServiceContainer()->getConnection(BookTableMap::DATABASE_NAME);
 
         $c = new ModelCriteria('bookstore', 'Propel\Tests\Bookstore\Book');
         $books = $c->filterByTitle('Don Juan')->find($con);
@@ -2276,7 +2275,7 @@ class ModelCriteriaTest extends BookstoreTestBase
 
     public function testMagicOrderBy()
     {
-        $con = Propel::getServiceContainer()->getConnection(BookPeer::DATABASE_NAME);
+        $con = Propel::getServiceContainer()->getConnection(BookTableMap::DATABASE_NAME);
 
         $c = new ModelCriteria('bookstore', 'Propel\Tests\Bookstore\Book');
         $books = $c->orderByTitle()->find($con);
@@ -2291,7 +2290,7 @@ class ModelCriteriaTest extends BookstoreTestBase
 
     public function testMagicGroupBy()
     {
-        $con = Propel::getServiceContainer()->getConnection(BookPeer::DATABASE_NAME);
+        $con = Propel::getServiceContainer()->getConnection(BookTableMap::DATABASE_NAME);
 
         $c = new ModelCriteria('bookstore', 'Propel\Tests\Bookstore\Book');
         $books = $c->groupByTitle()->find($con);
@@ -2317,7 +2316,7 @@ class ModelCriteriaTest extends BookstoreTestBase
         $this->assertTrue($c->thisIsMe, 'endUse() returns the Primary Criteria');
         $this->assertEquals('Propel\Tests\Bookstore\Book', $c->getModelName(), 'endUse() returns the Primary Criteria');
 
-        $con = Propel::getServiceContainer()->getConnection(BookPeer::DATABASE_NAME);
+        $con = Propel::getServiceContainer()->getConnection(BookTableMap::DATABASE_NAME);
         $c->find($con);
         $expectedSQL = "SELECT book.ID, book.TITLE, book.ISBN, book.PRICE, book.PUBLISHER_ID, book.AUTHOR_ID FROM `book` LEFT JOIN `author` ON (book.AUTHOR_ID=author.ID) WHERE book.TITLE = 'foo' AND author.FIRST_NAME = 'john' LIMIT 10, 5";
         $this->assertEquals($expectedSQL, $con->getLastExecutedQuery(), 'useQuery() and endUse() allow to merge a secondary criteria');
@@ -2342,7 +2341,7 @@ class ModelCriteriaTest extends BookstoreTestBase
         $this->assertTrue($c->thisIsMe, 'endUse() returns the Primary Criteria');
         $this->assertEquals('Propel\Tests\Bookstore\Book', $c->getModelName(), 'endUse() returns the Primary Criteria');
 
-        $con = Propel::getServiceContainer()->getConnection(BookPeer::DATABASE_NAME);
+        $con = Propel::getServiceContainer()->getConnection(BookTableMap::DATABASE_NAME);
         $c->find($con);
         $expectedSQL = "SELECT book.ID, book.TITLE, book.ISBN, book.PRICE, book.PUBLISHER_ID, book.AUTHOR_ID FROM `book` LEFT JOIN `author` `a` ON (book.AUTHOR_ID=a.ID) WHERE book.TITLE = 'foo' AND a.FIRST_NAME = 'john' LIMIT 10, 5";
         $this->assertEquals($expectedSQL, $con->getLastExecutedQuery(), 'useQuery() and endUse() allow to merge a secondary criteria');
@@ -2361,7 +2360,7 @@ class ModelCriteriaTest extends BookstoreTestBase
         $c2->withNoName();
         $c = $c2->endUse();
 
-        $con = Propel::getServiceContainer()->getConnection(BookPeer::DATABASE_NAME);
+        $con = Propel::getServiceContainer()->getConnection(BookTableMap::DATABASE_NAME);
         $c->find($con);
         $expectedSQL = "SELECT book.ID, book.TITLE, book.ISBN, book.PRICE, book.PUBLISHER_ID, book.AUTHOR_ID FROM `book` LEFT JOIN `author` `a` ON (book.AUTHOR_ID=a.ID) WHERE book.TITLE = 'foo' AND a.FIRST_NAME IS NOT NULL  AND a.LAST_NAME IS NOT NULL LIMIT 10";
         $this->assertEquals($expectedSQL, $con->getLastExecutedQuery(), 'useQuery() and endUse() allow to merge a custom secondary criteria');
@@ -2383,7 +2382,7 @@ class ModelCriteriaTest extends BookstoreTestBase
 
         $c = $c2->endUse();
 
-        $con = Propel::getServiceContainer()->getConnection(BookPeer::DATABASE_NAME);
+        $con = Propel::getServiceContainer()->getConnection(BookTableMap::DATABASE_NAME);
         $c->find($con);
 
         if (in_array($this->getDriver(), array('mysql'))) {
@@ -2408,7 +2407,7 @@ class ModelCriteriaTest extends BookstoreTestBase
         $c = $c2->endUse();
         $this->assertEquals('Propel\Tests\Bookstore\BookstoreContest', $c->getModelName(), 'endUse() returns the Primary Criteria');
 
-        $con = Propel::getServiceContainer()->getConnection(BookPeer::DATABASE_NAME);
+        $con = Propel::getServiceContainer()->getConnection(BookTableMap::DATABASE_NAME);
         $c->find($con);
 
         if (in_array($this->getDriver(), array('mysql'))) {
@@ -2433,7 +2432,7 @@ class ModelCriteriaTest extends BookstoreTestBase
         $c = $c2->endUse();
         $this->assertEquals('Propel\Tests\Bookstore\BookstoreContest', $c->getModelName(), 'endUse() returns the Primary Criteria');
 
-        $con = Propel::getServiceContainer()->getConnection(BookPeer::DATABASE_NAME);
+        $con = Propel::getServiceContainer()->getConnection(BookTableMap::DATABASE_NAME);
         $c->find($con);
 
         if (in_array($this->getDriver(), array('mysql'))) {
@@ -2514,32 +2513,32 @@ class ModelCriteriaTest extends BookstoreTestBase
     public function testGetAliasedColName()
     {
         $c = new ModelCriteria('bookstore', 'Propel\Tests\Bookstore\Book');
-        $this->assertEquals(BookPeer::TITLE, $c->getAliasedColName(BookPeer::TITLE), 'getAliasedColName() returns the input when the table has no alias');
+        $this->assertEquals(BookTableMap::TITLE, $c->getAliasedColName(BookTableMap::TITLE), 'getAliasedColName() returns the input when the table has no alias');
 
         $c = new ModelCriteria('bookstore', 'Propel\Tests\Bookstore\Book');
         $c->setModelAlias('foo');
-        $this->assertEquals(BookPeer::TITLE, $c->getAliasedColName(BookPeer::TITLE), 'getAliasedColName() returns the input when the table has a query alias');
+        $this->assertEquals(BookTableMap::TITLE, $c->getAliasedColName(BookTableMap::TITLE), 'getAliasedColName() returns the input when the table has a query alias');
 
         $c = new ModelCriteria('bookstore', 'Propel\Tests\Bookstore\Book');
         $c->setModelAlias('foo', true);
-        $this->assertEquals('foo.TITLE', $c->getAliasedColName(BookPeer::TITLE), 'getAliasedColName() returns the column name with table alias when the table has a true alias');
+        $this->assertEquals('foo.TITLE', $c->getAliasedColName(BookTableMap::TITLE), 'getAliasedColName() returns the column name with table alias when the table has a true alias');
     }
 
     public function testAddUsingAliasNoAlias()
     {
         $c1 = new ModelCriteria('bookstore', 'Propel\Tests\Bookstore\Book');
-        $c1->addUsingAlias(BookPeer::TITLE, 'foo');
+        $c1->addUsingAlias(BookTableMap::TITLE, 'foo');
         $c2 = new ModelCriteria('bookstore', 'Propel\Tests\Bookstore\Book');
-        $c2->add(BookPeer::TITLE, 'foo');
+        $c2->add(BookTableMap::TITLE, 'foo');
         $this->assertEquals($c2, $c1, 'addUsingalias() translates to add() when the table has no alias');
     }
 
     public function testAddUsingAliasQueryAlias()
     {
         $c1 = new ModelCriteria('bookstore', 'Propel\Tests\Bookstore\Book', 'b');
-        $c1->addUsingAlias(BookPeer::TITLE, 'foo');
+        $c1->addUsingAlias(BookTableMap::TITLE, 'foo');
         $c2 = new ModelCriteria('bookstore', 'Propel\Tests\Bookstore\Book', 'b');
-        $c2->add(BookPeer::TITLE, 'foo');
+        $c2->add(BookTableMap::TITLE, 'foo');
         $this->assertEquals($c2, $c1, 'addUsingalias() translates the colname using the table alias before calling add() when the table has a true alias');
     }
 
@@ -2547,7 +2546,7 @@ class ModelCriteriaTest extends BookstoreTestBase
     {
         $c1 = new ModelCriteria('bookstore', 'Propel\Tests\Bookstore\Book');
         $c1->setModelAlias('b', true);
-        $c1->addUsingAlias(BookPeer::TITLE, 'foo');
+        $c1->addUsingAlias(BookTableMap::TITLE, 'foo');
         $c2 = new ModelCriteria('bookstore', 'Propel\Tests\Bookstore\Book');
         $c2->setModelAlias('b', true);
         $c2->add('b.TITLE', 'foo');
@@ -2557,11 +2556,11 @@ class ModelCriteriaTest extends BookstoreTestBase
     public function testAddUsingAliasTwice()
     {
         $c1 = new ModelCriteria('bookstore', 'Propel\Tests\Bookstore\Book');
-        $c1->addUsingAlias(BookPeer::TITLE, 'foo');
-        $c1->addUsingAlias(BookPeer::TITLE, 'bar');
+        $c1->addUsingAlias(BookTableMap::TITLE, 'foo');
+        $c1->addUsingAlias(BookTableMap::TITLE, 'bar');
         $c2 = new ModelCriteria('bookstore', 'Propel\Tests\Bookstore\Book');
-        $c2->add(BookPeer::TITLE, 'foo');
-        $c2->addAnd(BookPeer::TITLE, 'bar');
+        $c2->add(BookTableMap::TITLE, 'foo');
+        $c2->addAnd(BookTableMap::TITLE, 'bar');
         $this->assertEquals($c2, $c1, 'addUsingalias() translates to addAnd() when the table already has a condition on the column');
     }
 
@@ -2569,8 +2568,8 @@ class ModelCriteriaTest extends BookstoreTestBase
     {
         $c1 = new ModelCriteria('bookstore', 'Propel\Tests\Bookstore\Book');
         $c1->setModelAlias('b', true);
-        $c1->addUsingAlias(BookPeer::TITLE, 'foo');
-        $c1->addUsingAlias(BookPeer::TITLE, 'bar');
+        $c1->addUsingAlias(BookTableMap::TITLE, 'foo');
+        $c1->addUsingAlias(BookTableMap::TITLE, 'bar');
         $c2 = new ModelCriteria('bookstore', 'Propel\Tests\Bookstore\Book');
         $c2->setModelAlias('b', true);
         $c2->add('b.TITLE', 'foo');
@@ -2599,7 +2598,7 @@ class ModelCriteriaTest extends BookstoreTestBase
 
     public function testMagicFindByObject()
     {
-        $con = Propel::getServiceContainer()->getConnection(BookPeer::DATABASE_NAME);
+        $con = Propel::getServiceContainer()->getConnection(BookTableMap::DATABASE_NAME);
         $c = new ModelCriteria('bookstore', 'Propel\Tests\Bookstore\Author');
         $testAuthor = $c->findOne();
         $q = BookQuery::create()

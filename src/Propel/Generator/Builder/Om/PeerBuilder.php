@@ -794,10 +794,10 @@ abstract class ".$this->getUnqualifiedClassName(). $extendingPeerClass . " {
         } else {";
         if (!$table->getChildrenColumn()) {
             $script .= "
-            \$cls = ".$this->getTableMapClass()."::OM_CLASS;";
+            \$cls = " . $this->getTableMapClass() . "::OM_CLASS;";
         } else {
             $script .= "
-            \$cls = ".$this->getTableMapClass()."::getOMClass(\$row, \$startcol, false);";
+            \$cls = static::getOMClass(\$row, \$startcol, false);";
         }
         $script .= "
             \$obj = new \$cls();

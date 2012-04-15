@@ -468,6 +468,16 @@ abstract class AbstractOMBuilder extends DataModelBuilder
     }
 
     /**
+     * Returns the TableMap class for curren table.
+     *
+     * @return string
+     */
+    public function getTableMapClassName()
+    {
+        return $this->getClassNameFromBuilder($this->getTableMapBuilder());
+    }
+
+    /**
      * Shortcut method to return the [stub] query classname for current table.
      * This is the classname that is used whenever object or peer classes want
      * to invoke methods of the query classes.

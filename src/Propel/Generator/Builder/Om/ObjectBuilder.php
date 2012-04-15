@@ -60,11 +60,6 @@ class ObjectBuilder extends AbstractObjectBuilder
         return $this->getStubObjectBuilder()->getUnprefixedClassName();
     }
 
-    public function getTableMapClass()
-    {
-        return $this->getStubObjectBuilder()->getUnqualifiedClassName().'TableMap';
-    }
-
     /**
      * Validates the current table to make sure that it won't
      * result in generated code that will not parse.
@@ -1001,7 +996,7 @@ abstract class ".$this->getUnqualifiedClassName()." extends ".$parentClass." ";
         if (null === \$this->$clo) {
             return null;
         }
-        \$valueSet = " . $this->getTableMapClass() . "::getValueSet(" . $this->getColumnConstant($col) . ");
+        \$valueSet = " . $this->getTableMapClassName() . "::getValueSet(" . $this->getColumnConstant($col) . ");
         if (!isset(\$valueSet[\$this->$clo])) {
             throw new PropelException('Unknown stored enum key: ' . \$this->$clo);
         }
@@ -1657,7 +1652,7 @@ abstract class ".$this->getUnqualifiedClassName()." extends ".$parentClass." ";
 
         $script .= "
         if (\$v !== null) {
-            \$valueSet = " . $this->getTableMapClass() . "::getValueSet(" . $this->getColumnConstant($col) . ");
+            \$valueSet = " . $this->getTableMapClassName() . "::getValueSet(" . $this->getColumnConstant($col) . ");
             if (!in_array(\$v, \$valueSet)) {
                 throw new PropelException(sprintf('Value \"%s\" is not accepted in this enumerated column', \$v));
             }
@@ -1971,7 +1966,7 @@ abstract class ".$this->getUnqualifiedClassName()." extends ".$parentClass." ";
                 \$this->ensureConsistency();
             }
 
-            return \$startcol + $n; // $n = ".$this->getTableMapClass()."::NUM_HYDRATE_COLUMNS.
+            return \$startcol + $n; // $n = ".$this->getTableMapClassName()."::NUM_HYDRATE_COLUMNS.
         } catch (Exception \$e) {
             throw new PropelException(\"Error populating ".$this->getStubObjectBuilder()->getClassName()." object\", 0, \$e);
         }";
@@ -2039,7 +2034,7 @@ abstract class ".$this->getUnqualifiedClassName()." extends ".$parentClass." ";
     protected function addBuildPkeyCriteriaBody(&$script)
     {
         $script .= "
-        \$criteria = new Criteria(".$this->getTableMapClass()."::DATABASE_NAME);";
+        \$criteria = new Criteria(".$this->getTableMapClassName()."::DATABASE_NAME);";
 
         foreach ($this->getTable()->getPrimaryKey() as $col) {
             $clo = strtolower($col->getName());
@@ -2109,7 +2104,7 @@ abstract class ".$this->getUnqualifiedClassName()." extends ".$parentClass." ";
     protected function addBuildCriteriaBody(&$script)
     {
         $script .= "
-        \$criteria = new Criteria(".$this->getTableMapClass()."::DATABASE_NAME);
+        \$criteria = new Criteria(".$this->getTableMapClassName()."::DATABASE_NAME);
 ";
         foreach ($this->getTable()->getColumns() as $col) {
             $clo = strtolower($col->getName());
@@ -2169,7 +2164,7 @@ abstract class ".$this->getUnqualifiedClassName()." extends ".$parentClass." ";
             return '*RECURSION*';
         }
         \$alreadyDumpedObjects['$objectClassName'][$pkGetter] = true;
-        \$keys = ".$this->getTableMapClass()."::getFieldNames(\$keyType);
+        \$keys = ".$this->getTableMapClassName()."::getFieldNames(\$keyType);
         \$result = array(";
         foreach ($this->getTable()->getColumns() as $num => $col) {
             if ($col->isLazyLoad()) {
@@ -2265,7 +2260,7 @@ abstract class ".$this->getUnqualifiedClassName()." extends ".$parentClass." ";
     protected function addGetByNameBody(&$script)
     {
         $script .= "
-        \$pos = ".$this->getTableMapClass()."::translateFieldName(\$name, \$type, TableMap::TYPE_NUM);
+        \$pos = ".$this->getTableMapClassName()."::translateFieldName(\$name, \$type, TableMap::TYPE_NUM);
         \$field = \$this->getByPosition(\$pos);";
     }
 
@@ -2377,7 +2372,7 @@ abstract class ".$this->getUnqualifiedClassName()." extends ".$parentClass." ";
      */
     public function setByName(\$name, \$value, \$type = TableMap::TYPE_PHPNAME)
     {
-        \$pos = ".$this->getTableMapClass()."::translateFieldName(\$name, \$type, TableMap::TYPE_NUM);
+        \$pos = ".$this->getTableMapClassName()."::translateFieldName(\$name, \$type, TableMap::TYPE_NUM);
 
         return \$this->setByPosition(\$pos, \$value);
     }
@@ -2408,7 +2403,7 @@ abstract class ".$this->getUnqualifiedClassName()." extends ".$parentClass." ";
 
             if (PropelTypes::ENUM === $col->getType()) {
                 $script .= "
-                \$valueSet = " . $this->getTableMapClass() . "::getValueSet(" . $this->getColumnConstant($col) . ");
+                \$valueSet = " . $this->getTableMapClassName() . "::getValueSet(" . $this->getColumnConstant($col) . ");
                 if (isset(\$valueSet[\$value])) {
                     \$value = \$valueSet[\$value];
                 }";
@@ -2454,7 +2449,7 @@ abstract class ".$this->getUnqualifiedClassName()." extends ".$parentClass." ";
      */
     public function fromArray(\$arr, \$keyType = TableMap::TYPE_PHPNAME)
     {
-        \$keys = ".$this->getTableMapClass()."::getFieldNames(\$keyType);
+        \$keys = ".$this->getTableMapClassName()."::getFieldNames(\$keyType);
 ";
         foreach ($table->getColumns() as $num => $col) {
             $cfc = $col->getPhpName();
@@ -2522,7 +2517,7 @@ abstract class ".$this->getUnqualifiedClassName()." extends ".$parentClass." ";
         }
 
         if (\$con === null) {
-            \$con = Propel::getServiceContainer()->getWriteConnection(".$this->getTableMapClass()."::DATABASE_NAME);
+            \$con = Propel::getServiceContainer()->getWriteConnection(".$this->getTableMapClassName()."::DATABASE_NAME);
         }
 
         \$con->beginTransaction();
@@ -2606,7 +2601,7 @@ abstract class ".$this->getUnqualifiedClassName()." extends ".$parentClass." ";
         }
 
         if (\$con === null) {
-            \$con = Propel::getServiceContainer()->getReadConnection(".$this->getTableMapClass()."::DATABASE_NAME);
+            \$con = Propel::getServiceContainer()->getReadConnection(".$this->getTableMapClassName()."::DATABASE_NAME);
         }
 
         // We don't need to alter the object instance pool; we're just modifying this instance
@@ -4628,7 +4623,7 @@ abstract class ".$this->getUnqualifiedClassName()." extends ".$parentClass." ";
         }
 
         if (\$con === null) {
-            \$con = Propel::getServiceContainer()->getWriteConnection(".$this->getTableMapClass()."::DATABASE_NAME);
+            \$con = Propel::getServiceContainer()->getWriteConnection(".$this->getTableMapClassName()."::DATABASE_NAME);
         }
 
         \$con->beginTransaction();
@@ -5214,7 +5209,7 @@ abstract class ".$this->getUnqualifiedClassName()." extends ".$parentClass." ";
      */
     public function __toString()
     {
-        return (string) \$this->exportTo(" . $this->getTableMapClass() . "::DEFAULT_STRING_FORMAT);
+        return (string) \$this->exportTo(" . $this->getTableMapClassName() . "::DEFAULT_STRING_FORMAT);
     }
 ";
     }
